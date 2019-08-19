@@ -31,9 +31,20 @@ let rec size arg = match arg with
 	| Impl(a1, a2) -> 1 + (size a1) + (size a2)
 	| Iff(a1, a2) -> 1 + (size a1) + (size a2);;
 
+
+(* Get letters as a string set: (set would be a built-in data structure) and more functions of set *)
+let rec letters arg = match arg with
+	T -> []
+	| F -> []
+	| L a -> [a]
+	| Not a -> (letters a)
+	| And(a1, a2) -> (letters a1) @ (letters a2)
+	| Or(a1, a2) -> (letters a1) @ (letters a2)
+	| Impl(a1, a2) -> (letters a1) @ (letters a2)
+	| Iff(a1, a2) -> (letters a1) @ (letters a2);;
+
 (* test-cases *)
 let l1 = And(T,Or(F, L("st")));;
 height l1;;
 size l1;;
-
-
+letters l1;;
