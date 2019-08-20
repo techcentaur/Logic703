@@ -43,8 +43,48 @@ let rec letters arg = match arg with
 	| Impl(a1, a2) -> (letters a1) @ (letters a2)
 	| Iff(a1, a2) -> (letters a1) @ (letters a2);;
 
+
+let and_function x y = match (x, y) with
+	(true, true) -> true
+	| (x, y) -> false;;
+
+
+let or_function x y = match (x, y) with
+	(false, false) -> false
+	| (x, y) -> true;;
+
+
+let imp_function x y = match (x, y) with
+	(true, false) -> false
+	| (x, y) -> false;;
+
+(* 
+let iff_function x y =
+		x = y;; *)
+
+let iff_function x y = match (x, y) with
+	_ -> and_function (imp_function x y) (imp_function y x);;
+
+
+(* Define rho as string->bool mapping *)
+let rho s = match s with
+	"st" -> false
+	| z -> true;;
+
+(* truth value function (string->bool)->bool *)
+let rec truth rho exp = match exp with
+	T -> true
+	| F -> false
+	| L a -> (rho a)
+	| Not a -> not (truth rho a)
+	| And(a1, a2) -> and_function (truth rho a1) (truth rho a2)
+	| Or(a1, a2) -> or_function (truth rho a1) (truth rho a2)
+	| Impl(a1, a2) -> imp_function (truth rho a1) (truth rho a2)
+	| Iff(a1, a2) -> iff_function (truth rho a1) (truth rho a2);;
+
 (* test-cases *)
 let l1 = And(T,Or(F, L("st")));;
 height l1;;
 size l1;;
 letters l1;;
+truth rho l1;;
