@@ -82,9 +82,70 @@ let rec truth rho exp = match exp with
 	| Impl(a1, a2) -> imp_function (truth rho a1) (truth rho a2)
 	| Iff(a1, a2) -> iff_function (truth rho a1) (truth rho a2);;
 
+
+(* Negation Normal Form (NNF): prop->prop*)
+let rec nnf exp = match exp with
+	L a -> exp
+	| T -> exp
+	| F -> exp
+	| Not a1 -> (match a1 with
+				| L b -> a1 (* what to do *)
+				| T -> F
+				| F -> T 
+				| Not b -> nnf b
+				| And(b1, b2) -> Or (nnf (Not b1), nnf (Not b2))
+				| Or(b1, b2) -> And (nnf (Not b1), nnf (Not b2))
+				| Impl(b1, b2) -> And (nnf b1, nnf (Not b2))
+				| Iff(b1, b2) -> Or (And (nnf b1, nnf (Not b2)), And (nnf b2, nnf (Not b1))))
+	| And(a1, a2) -> And(nnf a1, nnf a2)
+	| Or(a1, a2) -> Or(nnf a1, nnf a2)
+	| Impl(a1, a2) -> Or (nnf (Not a1), nnf a2)
+	| Iff(a1, a2) -> And (nnf (Impl (a1, a2)), nnf(Impl (a1, a2)));;
+
+
+(* CNF helper functions *)
+let rec go_on_distribute_cnf exp1 exp2 = match (exp1, exp2) with
+	(a1, And (a11, a12)) -> And ((go_on_distribute_cnf a1 a11), (go_on_distribute_cnf a1 a12))
+	| (And (a11, a12), a1) -> And ((go_on_distribute_cnf a11 a1), (go_on_distribute_cnf a12 a1))
+	| (a1, a2) -> Or (a1, a2);;
+
+let rec convert_cnf exp = match exp with
+	L a -> exp
+	| T -> exp
+	| F -> exp
+	| Not a -> exp
+	| And (a1, a2) -> And ((convert_cnf a1), (convert_cnf a2))
+	| Or (a1, a2) -> go_on_distribute_cnf (convert_cnf a1) (convert_cnf a2);;
+
+(* CNF: Conjuctive Normal Form: prop->prop *)
+let cnf exp = match exp with
+	_ -> (convert_cnf (nnf exp));;
+
+
+(* DNF helper functions *)
+let rec go_on_distribute_dnf exp1 exp2 = match (exp1, exp2) with
+	(a1, Or (a11, a12)) -> Or ((go_on_distribute_dnf a1 a11), (go_on_distribute_dnf a1 a12))
+	| (Or (a11, a12), a1) -> Or ((go_on_distribute_dnf a11 a1), (go_on_distribute_dnf a12 a1))
+	| (a1, a2) -> And (a1, a2);;
+
+let rec convert_dnf exp = match exp with
+	L a -> exp
+	| T -> exp
+	| F -> exp
+	| Not a -> exp
+	| Or (a1, a2) -> Or ((convert_dnf a1), (convert_dnf a2))
+	| And (a1, a2) -> go_on_distribute_dnf (convert_dnf a1) (convert_dnf a2);;
+
+(* DNF: Disjunctive Normal Form: prop->prop *)
+let dnf exp = match exp with
+	_ -> (convert_dnf (nnf exp));;
+
+
 (* test-cases *)
 let l1 = And(T,Or(F, L("st")));;
 height l1;;
 size l1;;
 letters l1;;
 truth rho l1;;
+cnf l1;;
+dnf l1;;
