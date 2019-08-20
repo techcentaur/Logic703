@@ -31,28 +31,50 @@ let rec size arg = match arg with
 	| Impl(a1, a2) -> 1 + (size a1) + (size a2)
 	| Iff(a1, a2) -> 1 + (size a1) + (size a2);;
 
+(* Let's write set: Data type *)
+let insert m s = match List.mem m s with 
+	true -> s 
+	| false -> s @ m :: [];;
 
-(* Get letters as a string set: (set would be a built-in data structure) and more functions of set *)
+let member m s = List.mem m s;;
+
+let rec union s1 s2 = match s1 with
+	[] -> s2
+	| m::rest -> if List.mem s2 then (union rest s2) else (union rest (s2 @ m :: []));;
+
+let rec intersection s1 s2 = match s1 with
+	[] -> []
+	| m::rest -> if List.mem m s2 then m::(intersection rest s2) else (intersection rest s2);;
+
+let rec difference s1 s2 = match s1 with
+	[] -> []
+	| m::rest -> if List.mem m s2 then difference rest s2 else m::(difference rest s2);;
+
+(* s1.length() <= s2.length() *)
+let rec subset s1 s2 = match s1 with
+	[] -> true
+	| m::rest -> if List.mem m s2 then subset m s2 else false;;
+
+let equal s1 s2 = ((subset s1 s2) && (subset s2 s1));;
+
+(* Get letters as a string set *)
 let rec letters arg = match arg with
 	T -> []
 	| F -> []
 	| L a -> [a]
 	| Not a -> (letters a)
-	| And(a1, a2) -> (letters a1) @ (letters a2)
-	| Or(a1, a2) -> (letters a1) @ (letters a2)
-	| Impl(a1, a2) -> (letters a1) @ (letters a2)
-	| Iff(a1, a2) -> (letters a1) @ (letters a2);;
-
+	| And(a1, a2) -> union (letters a1) (letters a2)
+	| Or(a1, a2) -> union (letters a1) (letters a2)
+	| Impl(a1, a2) -> union (letters a1) (letters a2)
+	| Iff(a1, a2) -> union (letters a1) (letters a2);;
 
 let and_function x y = match (x, y) with
 	(true, true) -> true
 	| (x, y) -> false;;
 
-
 let or_function x y = match (x, y) with
 	(false, false) -> false
 	| (x, y) -> true;;
-
 
 let imp_function x y = match (x, y) with
 	(true, false) -> false
@@ -64,7 +86,6 @@ let iff_function x y =
 
 let iff_function x y = match (x, y) with
 	_ -> and_function (imp_function x y) (imp_function y x);;
-
 
 (* Define rho as string->bool mapping *)
 let rho s = match s with
@@ -140,6 +161,9 @@ let rec convert_dnf exp = match exp with
 let dnf exp = match exp with
 	_ -> (convert_dnf (nnf exp));;
 
+(* 
+NOTE:
+DNF and CNF can further simply using unit laws and idempotence *)
 
 (* test-cases *)
 let l1 = And(T,Or(F, L("st")));;
@@ -149,3 +173,7 @@ letters l1;;
 truth rho l1;;
 cnf l1;;
 dnf l1;;
+
+let rec subprop_at p1 p2 = match p1 with
+	[] -> true
+	| 
