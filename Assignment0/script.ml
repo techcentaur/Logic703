@@ -1,6 +1,9 @@
 (* Assignment0 *)
 
-(* Data-type *)
+(* Exceptions *)
+exception NotSubProp;;
+
+(* Data-types *)
 type prop = T | F 
 			| L of string 
             | Not of prop
@@ -8,6 +11,8 @@ type prop = T | F
             | Or of prop * prop 
             | Impl of prop * prop 
             | Iff of prop * prop;;
+
+type 'a set = Set of ('a list);;
 
 (* Get height as integer *)
 let rec height arg = match arg with
@@ -25,43 +30,51 @@ let rec size arg = match arg with
 	T -> 1
 	| F -> 1
 	| L a -> 1
-	| Not a -> 1
+	| Not a -> 1 + (size a)
 	| And(a1, a2) -> 1 + (size a1) + (size a2)
 	| Or(a1, a2) -> 1 + (size a1) + (size a2)
 	| Impl(a1, a2) -> 1 + (size a1) + (size a2)
 	| Iff(a1, a2) -> 1 + (size a1) + (size a2);;
 
 (* Let's write set: Data type *)
-let insert m s = match List.mem m s with 
+let insert_into m s = match List.mem m s with 
 	true -> s 
-	| false -> s @ m :: [];;
+	| false -> (s @ m :: []);;
 
-let member m s = List.mem m s;;
+let insert m s = match s with
+	Set l -> Set (insert_into m l);;
+
+let member m s = match s with
+	Set s1 -> List.mem m s1;;
 
 let rec union s1 s2 = match s1 with
-	[] -> s2
-	| m::rest -> if List.mem s2 then (union rest s2) else (union rest (s2 @ m :: []));;
+	Set [] -> s2
+	| Set (m::rest) -> if member m s2 then (union (Set rest) s2) else (union (Set rest) (insert m  s2));;
 
 let rec intersection s1 s2 = match s1 with
-	[] -> []
-	| m::rest -> if List.mem m s2 then m::(intersection rest s2) else (intersection rest s2);;
+	Set [] -> Set []
+	| Set (m::rest) -> if member m s2 then insert m (intersection (Set rest) s2) else (intersection (Set rest) s2);;
 
 let rec difference s1 s2 = match s1 with
-	[] -> []
-	| m::rest -> if List.mem m s2 then difference rest s2 else m::(difference rest s2);;
+	Set [] -> Set []
+	| Set (m::rest) -> if member m s2 then (difference (Set rest) s2) else insert m (difference (Set rest) s2);;
 
 (* s1.length() <= s2.length() *)
 let rec subset s1 s2 = match s1 with
-	[] -> true
-	| m::rest -> if List.mem m s2 then subset m s2 else false;;
+	Set [] -> true
+	| Set (m::rest) -> if member m s2 then subset (Set rest) s2 else false;;
+
+let length s = match s with
+	Set [] -> 0
+	| Set l -> List.length l;;
 
 let equal s1 s2 = ((subset s1 s2) && (subset s2 s1));;
 
 (* Get letters as a string set *)
 let rec letters arg = match arg with
-	T -> []
-	| F -> []
-	| L a -> [a]
+	T -> Set []
+	| F -> Set []
+	| L a -> Set [a]
 	| Not a -> (letters a)
 	| And(a1, a2) -> union (letters a1) (letters a2)
 	| Or(a1, a2) -> union (letters a1) (letters a2)
@@ -110,7 +123,7 @@ let rec nnf exp = match exp with
 	| T -> exp
 	| F -> exp
 	| Not a1 -> (match a1 with
-				| L b -> a1 (* what to do *)
+				| L b -> Not a1
 				| T -> F
 				| F -> T 
 				| Not b -> nnf b
@@ -174,6 +187,44 @@ truth rho l1;;
 cnf l1;;
 dnf l1;;
 
-let rec subprop_at p1 p2 = match p1 with
-	[] -> true
-	| 
+let rec newprop p1 p2 l s =
+	(
+	if p1=p2 then (union (Set [l]) s)
+	else match p1 with 
+		| T -> s
+		| F -> s 
+		| L a -> s
+		| Not a -> newprop a p2 (l@[-1]) s 
+		| And(a1, a2)-> ( let x = newprop a1 p2 (l @ [0]) s in 
+				newprop a2 p2 (l @ [1]) x)
+		| Or(a1, a2)-> ( let x = newprop a1 p2 (l @ [0]) s in 
+				newprop a2 p2 (l @ [1]) x)
+		| Impl(a1, a2)-> ( let x = newprop a1 p2 (l @ [0]) s in 
+				newprop a2 p2 (l @ [1]) x)
+		| Iff(a1, a2)-> ( let x = newprop a1 p2 (l @ [0]) s in 
+				newprop a2 p2 (l @ [1]) x)
+	);;
+
+let subprop_at p1 p2 = (let x = (newprop (p1) (p2) ([]) (Set([]))) in 
+					(if length x = 0 then raise NotSubProp else x));;
+
+let p1 = And(T, F);;
+let p2 = And(T, T);;
+let p21 = And(F, T);;
+let p22 = And(F, F);;
+let p3 = Or(T, F);;
+let p4 = Or(F, F);;
+let p5 = Impl(T, F);;
+let p6 = Impl(F, T);;
+let p7 = Or(T, L "x");;
+let p71 = Or(L "x",  F);;
+let p9 = Impl(T, L "y");;
+let p10 = Iff(F, L "z");;
+let p11 = Impl(p1, p2);;
+let p111 = Impl(p1, p4);;
+let p12 = Not(Iff(p4, p5));;
+let p13 = Impl(p10, p9);;
+let p14 = Not(Or(p5, p7));;
+let p15 = Iff(And(p5, p6), p6);;
+let p16 = Impl(Iff(p15, p9), p14);;
+let p17 = Not(And(Iff(p7, p2), Or(p16, p10)));;
