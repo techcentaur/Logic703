@@ -30,9 +30,9 @@ let rec check_value rho p = match rho with
 let rec run_tableau tab rho = match tab with
 	m::[] -> (match m with
 		Leaf (Impl(p1, p2), b) -> if b=false then
-								Alpha ((Node ((Impl(p1, p2)), false)), (run_tableau ((Leaf (p1, true))::(Leaf (p2, false))::[]) rho))
+								Alpha ((Node ((Impl(p1, p2)), b)), (run_tableau ((Leaf (p1, true))::(Leaf (p2, false))::[]) rho))
 							else
-								Beta ((Node ((Impl(p1, p2)), true)), (run_tableau (Leaf (p1, false)::[]) rho), (run_tableau (Leaf (p2, true)::[]) rho)) 
+								Beta ((Node ((Impl(p1, p2)), b)), (run_tableau (Leaf (p1, false)::[]) rho), (run_tableau (Leaf (p2, true)::[]) rho)) 
 		| Leaf ((L p1), b) -> (let y = (isexists rho p1) in
 								(if y=true then 
 									let x = (check_value rho p1) in 
@@ -40,19 +40,43 @@ let rec run_tableau tab rho = match tab with
 										else Contrad (L (p1), b)) 
 								else Confirm (L (p1), b))))
 	| m::rest  -> (match m with
-		Leaf (Impl(p1, p2), b) -> if b=false then
-								Alpha ((Node ((Impl(p1, p2)), false)), (run_tableau ((Leaf (p1, true))::(Leaf (p2, false))::rest) rho))
+		Leaf (Impl (p1, p2), b) -> if b=false then
+								Alpha ((Node ((Impl(p1, b)), b)), (run_tableau ((Leaf (p1, true))::(Leaf (p2, false))::rest) rho))
 							else
-								Beta ((Node ((Impl(p1, p2)), true)), (run_tableau (Leaf (p1, false)::rest) rho), (run_tableau (Leaf (p2, true)::rest) rho))
+								Beta ((Node ((Impl(p1, p2)), b)), (run_tableau (Leaf (p1, false)::rest) rho), (run_tableau (Leaf (p2, true)::rest) rho))
+		| Leaf (And (p1, p2), b) -> if b=false then
+								Beta ((Node ((And(p1, p2)), b)), (run_tableau (Leaf (p1, false)::rest) rho), (run_tableau (Leaf (p2, false)::rest) rho))
+							else
+								Alpha ((Node ((Impl(p1, p2)), b)), (run_tableau ((Leaf (p1, true))::(Leaf (p2, true))::rest) rho))
+		| Leaf (Or (p1, p2), b) -> if b=false then
+								Alpha ((Node ((Impl(p1, p2)), b)), (run_tableau ((Leaf (p1, false))::(Leaf (p2, false))::rest) rho))
+							else
+								Beta ((Node ((And(p1, p2)), b)), (run_tableau (Leaf (p1, true)::rest) rho), (run_tableau (Leaf (p2, true)::rest) rho))
+		| Leaf (Iff (p1, p2), b) -> run_tableau (Leaf (And (Impl (p1, p2), Impl (p2, p1)), b))::rest rho
 		| Leaf ((L p1), b) -> (let y = (isexists rho p1) in
 								(if y=true then 
 									let x = (check_value rho p1) in 
 										(if x = b then (LeafNode (Node(L (p1), true), (run_tableau rest rho)))
 										else Contrad (L (p1), b))
 									else LeafNode (Node(L (p1), b), (run_tableau (rest) ((p1, b)::rho))) )));;
+
+
  
-let x = run_tableau [(Leaf (Impl(Impl(Impl(L "s", L "c"), L "s"), L "s"), false))] [];;
-Alpha((Leaf(x1->false), Alpha()), false)
+let x = run_tableau [(Leaf (Impl(Impl(Impl(L "x1", L "x2"), L "x1"), L "x1"), false))] [];;
+(* Alpha((Leaf(x1->false), Alpha()), false) *)
 
 
 (* type table = Leaf of (Node, int, (string*bool) list) | Alpha of node*table | Beta of node*table*table
+
+
+	m::[] -> (match m with
+		Leaf (Impl(p1, p2), b) -> if b=false then
+								Alpha ((Node ((Impl(p1, p2)), b)), (run_tableau ((Leaf (p1, true))::(Leaf (p2, false))::[]) rho))
+							else
+								Beta ((Node ((Impl(p1, p2)), b)), (run_tableau (Leaf (p1, false)::[]) rho), (run_tableau (Leaf (p2, true)::[]) rho)) 
+		| Leaf ((L p1), b) -> (let y = (isexists rho p1) in
+								(if y=true then 
+									let x = (check_value rho p1) in 
+										(if x = b then Confirm (L (p1), true)
+										else Contrad (L (p1), b)) 
+								else Confirm (L (p1), b))))
