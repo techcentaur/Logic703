@@ -68,6 +68,27 @@ let rec run_tableau tab rho = match tab with
 
 	);;
 
+type tableau = Leaf of prop * bool
+		| Contrad of prop * bool
+		| Confirm of prop * bool
+		| Alpha of node * tableau
+		| InternalNode of node * tableau
+		| Beta of node * tableau * tableau;;
 
- 
+
+let rec _valid_tableau_ tab b rho = match tab with
+	Beta (Node (p, b1), t1, t2) -> (
+									if b1 = true then
+										(
+										 match p with
+										 	Or(p1, p2) -> ()) and
+										)
+									else
+									)
+
+let rec valid_tableau tab = match tab with
+	Beta (n, t1, t2) -> _valid_tableau_ 
+
+
+
 let x = run_tableau [(Leaf (Impl(Impl(Impl(L "x1", L "x2"), L "x1"), L "x1"), false))] [];;
