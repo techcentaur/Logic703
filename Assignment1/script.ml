@@ -9,34 +9,50 @@ type prop = T | F
             | Impl of prop * prop 
             | Iff of prop * prop;;
 
-
 type node = Node of prop * bool;;
-type exam = Ex of node;;
 
-type tableau = L of prop * bool;;
-		| A of node * node * bool;; 
-		| B of node * node * bool;; 
+(* L leaf, A alpha, B beta *)
+type tableau = Leaf of prop*bool
+		| Contrad of prop*bool
+		| Confirm of prop*bool
+		| Alpha of node * tableau
+		| LeafNode of node * tableau
+		| Beta of node * tableau * tableau;;
 
-let contrad_path tab rho = match tab with 
-	L (Leaf (p, b)) -> Let x = (isexists rho p)
-						in match x with
-							true -> let y = (lookup rho p) in if y=b then 0 else 1
-							| false ->  2 (* not in rho *)
-	| _ -> false;;
+let rec isexists rho p = match rho with
+	(m1, m2)::rest -> if m1=p then true else isexists rest p
+	| [] -> false;;
 
-let rec run_tableau tab = match tab with
-	m::rest -> match m with 
-		Ex (p, true) -> run_tableau rest
-		| Ex (p, false) -> match p with 
-			(T, true) ->
-			(T, false) ->
-			(F, true) ->
-			(F, false) ->
-			(L s, b) ->
-			(Not p1, b) ->
-			(And(p1, p2), false) ->
-			(And(p1, p2), true) ->
-			(Or(p1, p2), false) ->
-			(Or(p1, p2), true) ->
-			(Iff(p1, p2), true) ->
-	[] -> 
+let rec check_value rho p = match rho with
+	(m1, m2)::rest -> if m1=p then m2 else check_value rest p 
+	| [] -> false;;
+
+let rec run_tableau tab rho = match tab with
+	m::[] -> (match m with
+		Leaf (Impl(p1, p2), b) -> if b=false then
+								Alpha ((Node ((Impl(p1, p2)), false)), (run_tableau ((Leaf (p1, true))::(Leaf (p2, false))::[]) rho))
+							else
+								Beta ((Node ((Impl(p1, p2)), true)), (run_tableau (Leaf (p1, false)::[]) rho), (run_tableau (Leaf (p2, true)::[]) rho)) 
+		| Leaf ((L p1), b) -> (let y = (isexists rho p1) in
+								(if y=true then 
+									let x = (check_value rho p1) in 
+										(if x = b then Confirm (L (p1), true)
+										else Contrad (L (p1), b)) 
+								else Confirm (L (p1), b))))
+	| m::rest  -> (match m with
+		Leaf (Impl(p1, p2), b) -> if b=false then
+								Alpha ((Node ((Impl(p1, p2)), false)), (run_tableau ((Leaf (p1, true))::(Leaf (p2, false))::rest) rho))
+							else
+								Beta ((Node ((Impl(p1, p2)), true)), (run_tableau (Leaf (p1, false)::rest) rho), (run_tableau (Leaf (p2, true)::rest) rho))
+		| Leaf ((L p1), b) -> (let y = (isexists rho p1) in
+								(if y=true then 
+									let x = (check_value rho p1) in 
+										(if x = b then (LeafNode (Node(L (p1), true), (run_tableau rest rho)))
+										else Contrad (L (p1), b))
+									else LeafNode (Node(L (p1), b), (run_tableau (rest) ((p1, b)::rho))) )));;
+ 
+let x = run_tableau [(Leaf (Impl(Impl(Impl(L "s", L "c"), L "s"), L "s"), false))] [];;
+Alpha((Leaf(x1->false), Alpha()), false)
+
+
+(* type table = Leaf of (Node, int, (string*bool) list) | Alpha of node*table | Beta of node*table*table
