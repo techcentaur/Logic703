@@ -77,6 +77,14 @@ let rec mark_it_examine rem p b = match rem with
 
 let check_if_p_exists rem p b = (List.mem (p, b, false) rem);;
 
+let rec check_if_in_rho rho s = match rho with
+	(s1, v)::rest -> if s1=s then true else (check_if_in_rho rest s)
+	| [] -> false;;
+
+let rec get_value_from_rho rho s = match rho with
+	(s1, v)::rest -> if s1=s then v else (get_value_from_rho rest s);;
+
+
 let rec _valid_tableau_ tab rem rho = match tab with
 	Beta (Node (p, b1), t1, t2) -> if (check_if_p_exists rem p b1)
 										then ( let newrem = (mark_it_examine rem p b1) in ( 
@@ -106,8 +114,29 @@ let rec _valid_tableau_ tab rem rho = match tab with
 									( let newrem = (mark_it_examine rem p b1) in 
 										(_valid_tableau_ t ((p, not b1, false)::newrem) rho)
 									)
-									else false;;
-	(* | InternalNode (Node(p)) *)
+									else false
+	| InternalNode (Node(L s, b1), t) -> if (check_if_p_exists rem (L s) b1) then
+										 (let newrem = (mark_it_examine rem (L s) b1) in 
+											if (check_if_in_rho rho s) then 
+												(if b1 = (get_value_from_rho rho s) then
+													(_valid_tableau_ t newrem rho)
+												else false
+												)
+											else (_valid_tableau_ t newrem ((s, b1)::rho))
+										)
+									else false
+	| Confirm (Node (L s, b1)) -> if (check_if_in_rho rho s) then
+									(if b1 = (get_value_from_rho rho s) then true
+									 else false
+									)
+								  else true
+	| Contrad (Node (L s, b1)) -> if (check_if_in_rho rho s) then
+									(if b1 = (not (get_value_from_rho rho s)) then true
+									 else false
+									)
+								else true
+	| _ -> true;;
+
 
 
 let rec valid_tableau tab = match tab with
@@ -124,15 +153,6 @@ val x : tableau =
     InternalNode (Node (L "x1", true), Contrad (Node (L "x1", false)))))
  *)
 
-(* let x = run_tableau [(Leaf (Impl(Impl(Impl(L "x1", L "x2"), L "x1"), L "x1"), false))] [];; *)
+let x = run_tableau [(Leaf (Impl(Impl(Impl(L "x1", L "x2"), L "x1"), L "x1"), false))] [];;
 
-(* 	| InternalNode (Node (L (p), b1), t) -> if (isexists rho p) then
-												if (check_value rho p)=b1 then
-													_valid_tableau_ t (where to get b) rho
-												else false
-											else
-												_valid_tableau_ t (* (where to get b) *) ((p, b1)::rho)
-	| Confirm (Node (L (p), b1)) -> if (isexists rho p) then
-										if (check_value rho p)==b1
-									else true
- *)
+let y = valid_tableau x;;
