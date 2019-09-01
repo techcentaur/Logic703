@@ -12,7 +12,8 @@ type prop = T | F
 type node = Node of prop * bool;;
 
 (* L leaf, A alpha, B beta *)
-type tableau = Leaf of prop * bool
+type tableau = Empty
+		| Leaf of prop * bool
 		| Contrad of node
 		| Confirm of node
 		| Alpha of node * tableau
@@ -179,22 +180,44 @@ let rec _find_assignments_ tab rho = match tab with
 									(let x = (check_value rho p1) in 
 										(if x = b then (
 														if List.length rest = 0 then
-															(Sat (rho)::[])
+															(Sat (((p1, b)::rho))::[])
 														else
 															(_find_assignments_ rest rho)
 														)
-										else (Unsat (rho)::[])))
+										else (Unsat (((p1, b)::rho))::[])))
 									else (
 										if List.length rest = 0 then
-											(Sat (rho)::[])
+											(Sat (((p1, b)::rho))::[])
 										else
 											(_find_assignments_ rest ((p1, b)::rho))
 										) 
 								))
-		| Leaf(T, b) -> (if b=false then (Unsat (rho)::[])
-						else (Sat (rho)::[]))
-		| Leaf(F, b) -> (if b=false then (Sat (rho)::[])
-						else (Unsat (rho)::[])));;
+		| Leaf(T, b) -> (if b=false then (Unsat (("T", b)::rho))::[]
+						else (Sat ((("T", true)::rho))::[]))
+		| Leaf(F, b) -> (if b=false then (Sat ((("F", false)::rho))::[])
+						else (Unsat ((("F", true)::rho))::[])));;
+
+
+
+let rec check_if_sat_assign_absent assigns = match assigns with
+	| [] -> true
+	| (Sat (rho))::rest -> false
+	| (Unsat (rho))::rest -> check_if_sat_assign_absent rest;;
+
+let rec give_me_all_sat_assigs assigns = match assigns with
+	| [] -> []
+	| (Sat (rho))::rest -> rho :: (give_me_all_sat_assigs rest)
+	| (Unsat (rho))::rest -> (give_me_all_sat_assigs rest);;
+
+let rec check_if_unsat_assign_absent assigns = match assigns with
+	| [] -> true
+	| (Sat (rho))::rest -> check_if_unsat_assign_absent rest
+	| (Unsat (rho))::rest -> false;;
+
+let rec give_me_all_unsat_assigs assigns = match assigns with
+	| [] -> []
+	| (Sat (rho))::rest -> (give_me_all_unsat_assigs rest)
+	| (Unsat (rho))::rest -> rho :: (give_me_all_unsat_assigs rest);;
 
 
 (* Functions needed to be implemented *)
@@ -207,6 +230,9 @@ let rec _find_assignments_ tab rho = match tab with
 `check_tautology` and `check_contradiction`, which return a tableaux proof that a proposition is a tautology [respectively contradiction] if it so, and a counter-example valuation otherwise. 
  *)
 
+exception NoNode;;
+exception NoLeafInDevelopedTableau;;
+
 let contrad_path tab = _contrad_path_ tab [];;
 
 let rec valid_tableau tab = match tab with
@@ -214,10 +240,11 @@ let rec valid_tableau tab = match tab with
 	| Alpha (Node (p, b), t1) -> _valid_tableau_ tab ((p, b, false)::[]) []
 	| NotNode (Node (p, b), t1) -> _valid_tableau_ tab ((p, b, false)::[]) []
 	| InternalNode (Node (p, b), t1) -> _valid_tableau_ tab ((p, b, false)::[]) []
-	| Confirm (Node (p, b)	) -> true
-	| Contrad (Node (p, b)) -> false;;
+	| Confirm (Node (p, b)) -> true
+	| Contrad (Node (p, b)) -> false
+	| Leaf (p, b) -> raise NoLeafInDevelopedTableau
+	| Empty -> true;;
 
-exception NoNode;;
 let select_node unexamnodes = match unexamnodes with
 	r::rest -> r
 	| [] -> raise NoNode;;
@@ -225,9 +252,28 @@ let select_node unexamnodes = match unexamnodes with
 let step_develop imnode = match imnode with
 	(p, b) -> (run_tableau ([Leaf (p, b)]) []);;
 
-let find_assignments rootnode = _find_assignments_ rootnode [];;
+let find_assignments rootnode = match rootnode with
+	(p, b) -> _find_assignments_ [Leaf (p, b)] [];;
+
+
+let check_tautology inp_prop = (let x = (find_assignments (inp_prop, false	)) in
+									(if (check_if_sat_assign_absent x) then
+										((step_develop (inp_prop, false)), ([]))
+									else ((Empty), (give_me_all_sat_assigs x))
+									)
+								);;
+
+let check_contradiction inp_prop = (let x = (find_assignments (inp_prop, true)) in
+									(if (check_if_sat_assign_absent x) then
+										((step_develop (inp_prop, true)), ([]))
+									else ((Empty), (give_me_all_sat_assigs x))
+									)
+								);; 
+
 
 (* examples *)
+
+let prop1 = (Impl(Impl(Impl(L "x1", L "x2"), L "x1"), L "x1"));;
 
 let x = run_tableau [(Leaf (Impl(Impl(Impl(L "x1", L "x2"), L "x1"), L "x1"), false))] [];;
 let y = valid_tableau x;;
@@ -239,4 +285,15 @@ let  z : tableau =
      InternalNode (Node (L "x1", true),
       InternalNode (Node (L "x2", false), Contrad (Node (L "x1", false))))),
     InternalNode (Node (L "x1", true), Confirm (Node (L "x1", false)))))
-let y = valid_tableau z;;
+(* let y = valid_tableau z;; *)
+
+
+let x3 = find_assignments (prop1, true);;
+let x4 = find_assignments (prop1, false);;
+
+let x1 = check_tautology prop1;;
+let x2 = check_contradiction prop1;;
+
+
+let z1 = contrad_path z;;
+let z2 = contrad_path x;;
