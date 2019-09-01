@@ -20,6 +20,8 @@ type tableau = Leaf of prop * bool
 		| NotNode of node * tableau
 		| Beta of node * tableau * tableau;;
 
+type assignments = Unsat of ((string*bool) list) | Sat of ((string*bool) list);;
+
 let rec isexists rho p = match rho with
 	(m1, m2)::rest -> if m1=p then true else isexists rest p
 	| [] -> false;;
@@ -138,21 +140,103 @@ let rec _valid_tableau_ tab rem rho = match tab with
 	| _ -> true;;
 
 
+let rec _contrad_path_ tab rho = match tab with
+	Beta (Node (p, b1), t1, t2) -> Beta (Node (p, b1), (_contrad_path_ t1 rho), (_contrad_path_ t2 rho))
+	| Alpha (Node (p, b1), t1) ->  Alpha (Node (p, b1), (_contrad_path_ t1 rho))
+	| NotNode (Node (p, b1), t) -> NotNode (Node (p, b1), (_contrad_path_ t rho))
+	| InternalNode (Node(L s, b1), t) -> if (check_if_in_rho rho s) then 
+												(if b1 = (get_value_from_rho rho s) then
+													InternalNode (Node (L s, b1), (_contrad_path_ t rho))
+												else Contrad (Node(L s, b1)))
+										else InternalNode (Node (L s, b1), (_contrad_path_ t ((s, b1)::rho)))
+	| Confirm (Node (L s, b1)) -> if (check_if_in_rho rho s) then
+									(if b1 = (get_value_from_rho rho s) then Confirm (Node (L s, b1))
+									 else Contrad (Node (L s, b1))
+									)
+								  else Confirm (Node (L s, b1))
+	| Contrad (Node (L s, b1)) -> Contrad (Node (L s, b1));;
+
+
+
+let rec _find_assignments_ tab rho = match tab with
+	| m::rest  -> (match m with
+		Leaf (Impl (p1, p2), b) -> if b=false then
+								(_find_assignments_ ((Leaf (p1, true))::(Leaf (p2, false))::rest) rho)
+								else
+								(_find_assignments_ (Leaf (p1, false)::rest) rho) @ (_find_assignments_ (Leaf (p2, true)::rest) rho)
+		| Leaf (And (p1, p2), b) -> if b=false then
+								(_find_assignments_ (Leaf (p1, false)::rest) rho) @ ((_find_assignments_ (Leaf (p2, false)::rest) rho))
+								else
+								(_find_assignments_ ((Leaf (p1, true))::(Leaf (p2, true))::rest) rho)
+		| Leaf (Or (p1, p2), b) -> if b=false then
+								(_find_assignments_ ((Leaf (p1, false))::(Leaf (p2, false))::rest) rho)
+							else
+								(_find_assignments_ (Leaf (p1, true)::rest) rho) @ (_find_assignments_ (Leaf (p2, true)::rest) rho)
+		| Leaf (Iff (p1, p2), b) -> (_find_assignments_ ((Leaf (And (Impl (p1, p2), Impl (p2, p1)), b))::rest) rho)
+		| Leaf (Not(p1), b) -> (_find_assignments_ (Leaf (p1, (not b))::rest) rho)
+		| Leaf ((L p1), b) -> (let y = (isexists rho p1) in
+									(if y=true then 
+									(let x = (check_value rho p1) in 
+										(if x = b then (
+														if List.length rest = 0 then
+															(Sat (rho)::[])
+														else
+															(_find_assignments_ rest rho)
+														)
+										else (Unsat (rho)::[])))
+									else (
+										if List.length rest = 0 then
+											(Sat (rho)::[])
+										else
+											(_find_assignments_ rest ((p1, b)::rho))
+										) 
+								))
+		| Leaf(T, b) -> (if b=false then (Unsat (rho)::[])
+						else (Sat (rho)::[]))
+		| Leaf(F, b) -> (if b=false then (Sat (rho)::[])
+						else (Unsat (rho)::[])));;
+
+
+(* Functions needed to be implemented *)
+(* 
+`contrad_path` that given a partially developed tableau detects a contradiction on a path and marks it closed (excluding it from further consideration).
+`valid_tableau` that given a partially (or fully) developed tableau, checks whether or not it is a legitimate development from the root of the tableau, according to the rules specified.
+`select_node` that selects an unexamined node on an open path as a candidate for further development.
+`step_develop` that given a selected node on a path, develops the tableau according to the rules specified above.
+`find_assignments`, that given a root node, finds all satisfying/falsifying truth assignments (valuations) for that prop-bool pair. 
+`check_tautology` and `check_contradiction`, which return a tableaux proof that a proposition is a tautology [respectively contradiction] if it so, and a counter-example valuation otherwise. 
+ *)
+
+let contrad_path tab = _contrad_path_ tab [];;
 
 let rec valid_tableau tab = match tab with
 	Beta (Node (p, b), t1, t2) -> _valid_tableau_ tab ((p, b, false)::[]) []
-	| Alpha (Node (p, b), t1) -> _valid_tableau_ tab ((p, b, false)::[]) [];;
+	| Alpha (Node (p, b), t1) -> _valid_tableau_ tab ((p, b, false)::[]) []
+	| NotNode (Node (p, b), t1) -> _valid_tableau_ tab ((p, b, false)::[]) []
+	| InternalNode (Node (p, b), t1) -> _valid_tableau_ tab ((p, b, false)::[]) []
+	| Confirm (Node (p, b)	) -> true
+	| Contrad (Node (p, b)) -> false;;
 
-(* 
-val x : tableau =
+exception NoNode;;
+let select_node unexamnodes = match unexamnodes with
+	r::rest -> r
+	| [] -> raise NoNode;;
+
+let step_develop imnode = match imnode with
+	(p, b) -> (run_tableau ([Leaf (p, b)]) []);;
+
+let find_assignments rootnode = _find_assignments_ rootnode [];;
+
+(* examples *)
+
+let x = run_tableau [(Leaf (Impl(Impl(Impl(L "x1", L "x2"), L "x1"), L "x1"), false))] [];;
+let y = valid_tableau x;;
+
+let  z : tableau =
   Alpha (Node (Impl (Impl (Impl (L "x1", L "x2"), L "x1"), L "x1"), false),
    Beta (Node (Impl (Impl (L "x1", L "x2"), L "x1"), true),
     Alpha (Node (Impl (L "x1", L "x2"), false),
      InternalNode (Node (L "x1", true),
       InternalNode (Node (L "x2", false), Contrad (Node (L "x1", false))))),
-    InternalNode (Node (L "x1", true), Contrad (Node (L "x1", false)))))
- *)
-
-let x = run_tableau [(Leaf (Impl(Impl(Impl(L "x1", L "x2"), L "x1"), L "x1"), false))] [];;
-
-let y = valid_tableau x;;
+    InternalNode (Node (L "x1", true), Confirm (Node (L "x1", false)))))
+let y = valid_tableau z;;
