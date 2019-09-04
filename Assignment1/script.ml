@@ -1,5 +1,16 @@
 (* Assignment1 *)
 
+(* Functions needed to be implemented *)
+(* 
+`contrad_path` that given a partially developed tableau detects a contradiction on a path and marks it closed (excluding it from further consideration).
+`valid_tableau` that given a partially (or fully) developed tableau, checks whether or not it is a legitimate development from the root of the tableau, according to the rules specified.
+`select_node` that selects an unexamined node on an open path as a candidate for further development.
+`step_develop` that given a selected node on a path, develops the tableau according to the rules specified above.
+`find_assignments`, that given a root node, finds all satisfying/falsifying truth assignments (valuations) for that prop-bool pair. 
+`check_tautology` and `check_contradiction`, which return a tableaux proof that a proposition is a tautology [respectively contradiction] if it so, and a counter-example valuation otherwise. 
+ *)
+
+
 (* Data-types *)
 type prop = T | F 
 			| L of string 
@@ -220,18 +231,11 @@ let rec give_me_all_unsat_assigs assigns = match assigns with
 	| (Unsat (rho))::rest -> rho :: (give_me_all_unsat_assigs rest);;
 
 
-(* Functions needed to be implemented *)
-(* 
-`contrad_path` that given a partially developed tableau detects a contradiction on a path and marks it closed (excluding it from further consideration).
-`valid_tableau` that given a partially (or fully) developed tableau, checks whether or not it is a legitimate development from the root of the tableau, according to the rules specified.
-`select_node` that selects an unexamined node on an open path as a candidate for further development.
-`step_develop` that given a selected node on a path, develops the tableau according to the rules specified above.
-`find_assignments`, that given a root node, finds all satisfying/falsifying truth assignments (valuations) for that prop-bool pair. 
-`check_tautology` and `check_contradiction`, which return a tableaux proof that a proposition is a tautology [respectively contradiction] if it so, and a counter-example valuation otherwise. 
- *)
 
 exception NoNode;;
 exception NoLeafInDevelopedTableau;;
+
+(* Required Functions *)
 
 let contrad_path tab = _contrad_path_ tab [];;
 
@@ -287,13 +291,11 @@ let  z : tableau =
     InternalNode (Node (L "x1", true), Confirm (Node (L "x1", false)))))
 (* let y = valid_tableau z;; *)
 
-
 let x3 = find_assignments (prop1, true);;
 let x4 = find_assignments (prop1, false);;
 
 let x1 = check_tautology prop1;;
 let x2 = check_contradiction prop1;;
-
 
 let z1 = contrad_path z;;
 let z2 = contrad_path x;;
