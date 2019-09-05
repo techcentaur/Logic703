@@ -47,13 +47,6 @@ let rec do_union t1 t2 = match (t1, t2) with
 	| (G p1, G p2) -> (match p1 with 
 			| [] -> G p2
 			| r::rest-> (do_union (G rest) (G (r::p2))));;
-
-(* let do_union t1 t2 = t1;; *)
-
-let rec valid_hrpooftree tree = match tree with
-	| Root (J (g, p), h) -> _valid_hrprooftree_ h g
-	| _ -> false;;
-
 exception SomethingWrong;;
 let rec _pad_ tree union = match tree with
 	| Root (J (g, p), h) -> Root ( J (union, p), (_pad_ h (do_union g union)))
@@ -69,4 +62,16 @@ let rec _pad_ tree union = match tree with
 		R (J (union, Impl(Impl(Not(p1), Not(q1)), Impl(Impl(Not(p2), q2), p3))))
 	| _ -> raise SomethingWrong;;
 
+let rec _prune_ tree -> 
+
+
+(* main required functions *)
+
+let rec valid_hrpooftree tree = match tree with
+	| Root (J (g, p), h) -> _valid_hrprooftree_ h g
+	| _ -> false;;
+
+
 let pad tree delta = _pad_ tree (G delta);;
+
+let prune tree = _prune_ tree;;
