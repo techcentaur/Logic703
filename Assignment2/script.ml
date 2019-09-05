@@ -1,6 +1,6 @@
 (* Assignment-2 Logic703 
 on Hilbert 
-*)
+ *)
 
 (* Data-types *)
 type prop = T | F 
@@ -11,7 +11,7 @@ type prop = T | F
             | Impl of prop * prop 
             | Iff of prop * prop;;
 
-type gamma = G of (prop) list;;
+type gamma = G of (prop list);;
 
 type judgement = J of gamma * (prop);;
 
@@ -43,5 +43,30 @@ let rec _valid_hrprooftree_ tree gam = match tree with
 	| _ -> false;;
 
 
+let rec do_union t1 t2 = match (t1, t2) with
+	| (G p1, G p2) -> (match p1 with 
+			| [] -> G p2
+			| r::rest-> (do_union (G rest) (G (r::p2))));;
+
+(* let do_union t1 t2 = t1;; *)
+
 let rec valid_hrpooftree tree = match tree with
-	| Root (J (g, p), h) -> _valid_hrprooftree_ h g;;
+	| Root (J (g, p), h) -> _valid_hrprooftree_ h g
+	| _ -> false;;
+
+exception SomethingWrong;;
+let rec _pad_ tree union = match tree with
+	| Root (J (g, p), h) -> Root ( J (union, p), (_pad_ h (do_union g union)))
+	| MP (J (g1, p11), J(g2, Impl(p21, p12)), J(g3, p22), h1, h2) ->
+		MP (J (union, p11), J(union, Impl(p21, p12)), J(union, p22), (_pad_ h1 union), (_pad_ h2 union))
+	| Ass (J (g, p)) -> 
+		Ass (J (union, p))
+	| K (J (g, Impl(p1, Impl(q, p2))))-> 
+		K (J (union, Impl(p1, Impl(q, p2))))
+	| S (J (g, Impl(Impl(p1, Impl(q1, r1)), Impl(Impl(p2, q2), Impl(p3, r2))))) ->
+		S (J (union, Impl(Impl(p1, Impl(q1, r1)), Impl(Impl(p2, q2), Impl(p3, r2)))))
+	| R (J (g, Impl(Impl(Not(p1), Not(q1)), Impl(Impl(Not(p2), q2), p3)))) -> 
+		R (J (union, Impl(Impl(Not(p1), Not(q1)), Impl(Impl(Not(p2), q2), p3))))
+	| _ -> raise SomethingWrong;;
+
+let pad tree delta = _pad_ tree (G delta);;
