@@ -86,6 +86,9 @@ let rec replace_gamma tree newgamma = match tree with
 		R (J (newgamma, Impl(Impl(Not(p1), Not(q1)), Impl(Impl(Not(p2), q2), p3))))
 	| _ -> raise SomethingWrong;;
 
+let get_gamma prooftreelist = match prooftreelist with
+	| (r::rest) -> (match r with Root (J (g, p), h) -> g)
+	| [] -> G ([]);;
 
 (* main required functions *)
 
@@ -97,3 +100,4 @@ let pad tree delta = _pad_ tree (G delta);;
 
 let prune tree = (replace_gamma tree (G (get_delta tree)));;
 
+let graft tree hplist= (replace_gamma tree (get_gamma hplist));;
