@@ -1,6 +1,4 @@
-(* Assignment-2 Logic703 
-on Hilbert 
- *)
+(* Assignment-2 Logic703 on Hilbert Style Proof System *)
 
 (* Data-types *)
 type prop = T | F 
@@ -62,7 +60,31 @@ let rec _pad_ tree union = match tree with
 		R (J (union, Impl(Impl(Not(p1), Not(q1)), Impl(Impl(Not(p2), q2), p3))))
 	| _ -> raise SomethingWrong;;
 
-let rec _prune_ tree -> 
+
+let rec get_delta tree = match tree with
+	| Root (J (g, p), h) -> (get_delta h)
+	| MP (J (g1, p11), J(g2, Impl(p21, p12)), J(g3, p22), h1, h2) ->
+		(get_delta h1) @ (get_delta h2)
+	| Ass (J (g, p)) -> [p]
+	| K (J (g, Impl(p1, Impl(q, p2))))-> []
+	| S (J (g, Impl(Impl(p1, Impl(q1, r1)), Impl(Impl(p2, q2), Impl(p3, r2))))) -> []
+	| R (J (g, Impl(Impl(Not(p1), Not(q1)), Impl(Impl(Not(p2), q2), p3)))) -> []
+	| _ -> raise SomethingWrong;;
+
+
+let rec replace_gamma tree newgamma = match tree with
+	| Root (J (g, p), h) -> Root ( J (newgamma, p), (_pad_ h newgamma))
+	| MP (J (g1, p11), J(g2, Impl(p21, p12)), J(g3, p22), h1, h2) ->
+		MP (J (newgamma, p11), J(newgamma, Impl(p21, p12)), J(newgamma, p22), (_pad_ h1 newgamma), (_pad_ h2 newgamma))
+	| Ass (J (g, p)) -> 
+		Ass (J (newgamma, p))
+	| K (J (g, Impl(p1, Impl(q, p2))))-> 
+		K (J (newgamma, Impl(p1, Impl(q, p2))))
+	| S (J (g, Impl(Impl(p1, Impl(q1, r1)), Impl(Impl(p2, q2), Impl(p3, r2))))) ->
+		S (J (newgamma, Impl(Impl(p1, Impl(q1, r1)), Impl(Impl(p2, q2), Impl(p3, r2)))))
+	| R (J (g, Impl(Impl(Not(p1), Not(q1)), Impl(Impl(Not(p2), q2), p3)))) -> 
+		R (J (newgamma, Impl(Impl(Not(p1), Not(q1)), Impl(Impl(Not(p2), q2), p3))))
+	| _ -> raise SomethingWrong;;
 
 
 (* main required functions *)
@@ -71,7 +93,7 @@ let rec valid_hrpooftree tree = match tree with
 	| Root (J (g, p), h) -> _valid_hrprooftree_ h g
 	| _ -> false;;
 
-
 let pad tree delta = _pad_ tree (G delta);;
 
-let prune tree = _prune_ tree;;
+let prune tree = (replace_gamma tree (G (get_delta tree)));;
+
