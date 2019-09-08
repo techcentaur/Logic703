@@ -90,6 +90,30 @@ let get_gamma prooftreelist = match prooftreelist with
 	| (r::rest) -> (match r with Root (J (g, p), h) -> g)
 	| [] -> G ([]);;
 
+let rec _ded_thm_ tree = match tree with
+	Ass (J(g, q)) -> let q1 = q in ( match g with
+							| (G (p::rest)) -> if p=q then 
+								MP(J(G(rest), Impl(p, p)),
+									J(G(rest), Impl(Impl(p, Impl(q1, p)), Impl(p, p))),
+									J(G(rest), Impl(p, Impl(q1, p))), 
+									MP(J(G(rest), Impl(Impl(p, Impl(q1, p)), Impl(p, p))),
+										J(G(rest), Impl(Impl(Impl(p, Impl(Impl(q1, p), p)), Impl(p, p)), Impl(p, Impl(Impl(q1, p), p)))),
+										J(G(rest), Impl(p, Impl(Impl(q1, p), p))),
+										S(J(G(rest), Impl(Impl(Impl(p, Impl(Impl(q1, p), p)), Impl(p, p)), Impl(p, Impl(Impl(q1, p), p))))),
+										K(J(G(rest), Impl(p, Impl(Impl(q1, p), p))))
+										),
+									K(J(G(rest), Impl(p, Impl(q1, p)))))
+							 else Ass(J(G(rest), q)))
+	| K (J(G(p::rest), q)) -> K (J(G(rest), q))
+	| S (J(G(p::rest), q)) -> S (J(G(rest), q))
+	| R (J(G(p::rest), q)) -> R (J(G(rest), q))
+	| MP (J(G(p::rest), q1), J(g1, Impl(r1, q2)), J(g2, r2), h1, h2) -> 
+		MP(J(G(rest), Impl(p, q1)), J(G(rest), Impl(Impl(p, r1), Impl(p, q1))), J(G(rest), Impl(p, r1)),
+			 MP(J(G(rest), Impl(Impl(p, r1), Impl(p, q1))), J(G(rest), Impl(Impl(p, Impl(r1, q1)), Impl(Impl(p, r1), Impl(p, q1)))), J(G(rest), Impl(p, Impl(r1, q1))),
+			 	S(J(G(rest), Impl(Impl(p, Impl(r1, q1)), Impl(Impl(p, r1), Impl(p, q1))))), (_ded_thm_ h1)),
+			 (_ded_thm_ h2));;
+
+
 (* main required functions *)
 
 let rec valid_hrpooftree tree = match tree with
@@ -101,3 +125,5 @@ let pad tree delta = _pad_ tree (G delta);;
 let prune tree = (replace_gamma tree (G (get_delta tree)));;
 
 let graft tree hplist= (replace_gamma tree (get_gamma hplist));;
+
+let dedthm htree = (_ded_thm_ htree);;
