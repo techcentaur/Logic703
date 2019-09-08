@@ -91,18 +91,18 @@ let get_gamma prooftreelist = match prooftreelist with
 	| [] -> G ([]);;
 
 let rec _ded_thm_ tree = match tree with
-	Ass (J(g, q)) -> let q1 = q in ( match g with
-							| (G (p::rest)) -> if p=q then 
+	Ass (J(g, q)) -> ( match g with
+							| (G (p::rest)) -> if p=q then let q1 = p in let q2 = Impl(p, p) in( 
 								MP(J(G(rest), Impl(p, p)),
 									J(G(rest), Impl(Impl(p, Impl(q1, p)), Impl(p, p))),
 									J(G(rest), Impl(p, Impl(q1, p))), 
 									MP(J(G(rest), Impl(Impl(p, Impl(q1, p)), Impl(p, p))),
-										J(G(rest), Impl(Impl(Impl(p, Impl(Impl(q1, p), p)), Impl(p, p)), Impl(p, Impl(Impl(q1, p), p)))),
-										J(G(rest), Impl(p, Impl(Impl(q1, p), p))),
-										S(J(G(rest), Impl(Impl(Impl(p, Impl(Impl(q1, p), p)), Impl(p, p)), Impl(p, Impl(Impl(q1, p), p))))),
-										K(J(G(rest), Impl(p, Impl(Impl(q1, p), p))))
+										J(G(rest), Impl(Impl(Impl(p, Impl(Impl(q2, p), p)), Impl(p, p)), Impl(p, Impl(Impl(q1, p), p)))),
+										J(G(rest), Impl(p, Impl(Impl(q2, p), p))),
+										S(J(G(rest), Impl(Impl(Impl(p, Impl(Impl(q2, p), p)), Impl(p, p)), Impl(p, Impl(Impl(q1, p), p))))),
+										K(J(G(rest), Impl(p, Impl(Impl(q2, p), p))))
 										),
-									K(J(G(rest), Impl(p, Impl(q1, p)))))
+									K(J(G(rest), Impl(p, Impl(q1, p))))))
 							 else Ass(J(G(rest), q)))
 	| K (J(G(p::rest), q)) -> K (J(G(rest), q))
 	| S (J(G(p::rest), q)) -> S (J(G(rest), q))
@@ -114,9 +114,26 @@ let rec _ded_thm_ tree = match tree with
 			 (_ded_thm_ h2));;
 
 
+let rec get_me_proof_tree hplist gamma props = match (gamma, hplist) with
+	(G (g::restg), hp::resthp) -> if props = g then hp else (get_me_proof_tree resthp (G(restg)) props)
+	| _ -> raise SomethingWrong;;
+
+let rec replace_trees_inside tree hplist newgamma = match tree with
+	| Root (J (g, p), h) -> Root ( J (newgamma, p), (replace_trees_inside h hplist newgamma))
+	| MP (J (g1, p11), J(g2, Impl(p21, p12)), J(g3, p22), h1, h2) ->
+		MP (J (newgamma, p11), J(newgamma, Impl(p21, p12)), J(newgamma, p22), (replace_trees_inside h1 hplist newgamma), (replace_trees_inside h2 hplist newgamma))
+	| Ass (J (g, p)) -> (get_me_proof_tree hplist g p)
+	| K (J (g, Impl(p1, Impl(q, p2))))-> 
+		K (J (newgamma, Impl(p1, Impl(q, p2))))
+	| S (J (g, Impl(Impl(p1, Impl(q1, r1)), Impl(Impl(p2, q2), Impl(p3, r2))))) ->
+		S (J (newgamma, Impl(Impl(p1, Impl(q1, r1)), Impl(Impl(p2, q2), Impl(p3, r2)))))
+	| R (J (g, Impl(Impl(Not(p1), Not(q1)), Impl(Impl(Not(p2), q2), p3)))) -> 
+		R (J (newgamma, Impl(Impl(Not(p1), Not(q1)), Impl(Impl(Not(p2), q2), p3))))
+	| _ -> raise SomethingWrong;;
+
 (* main required functions *)
 
-let rec valid_hrpooftree tree = match tree with
+let rec valid_hprooftree tree = match tree with
 	| Root (J (g, p), h) -> _valid_hrprooftree_ h g
 	| _ -> false;;
 
@@ -124,6 +141,6 @@ let pad tree delta = _pad_ tree (G delta);;
 
 let prune tree = (replace_gamma tree (G (get_delta tree)));;
 
-let graft tree hplist= (replace_gamma tree (get_gamma hplist));;
+let graft tree hplist = (let newgam = (get_gamma hplist) in (replace_trees_inside tree hplist newgam));;
 
 let dedthm htree = (_ded_thm_ htree);;
