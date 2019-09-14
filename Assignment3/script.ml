@@ -53,10 +53,27 @@ type prop = T | F
             | Impl of prop * prop 
             | Iff of prop * prop;;
 
-type judgement = J of (prop set) * prop;;
+type judgement = Agree of (prop set) * prop;;
 
-type antecedents = A of (judgement set);;
+type antecedents = Ant of judgement;;
 
 type ndprooftree = End of judgement
-	| Inf of antecedents * ndprooftree;;
+	| IntroImp of antecedents * ndprooftree
+	| ElimImp of (antecedents list) * ndprooftree
+	| Int of antecedents * ndprooftree
+	| Class of antecedents * ndprooftree
+	| IntroAnd of (antecedents list) * ndprooftree
+	| ElimAnd of (antecedents * ndprooftree) list
+	| IntroOr of (antecedents * ndprooftree) list
+	| ElimOr of (antecedents list) * ndprooftree;;
 
+let rec check_if_concl_in_ass ass concl = match ass with
+	Set (a::rest) -> if a=concl then true else check_if_concl_in_ass (Set (rest)) concl
+	| Set ([]) -> false;; 
+ 
+
+let rec valid_ndprooftree pt = match pt with
+	End( Agree (ass, concl)) -> if concl=T then true
+								else (if (check_if_concl_in_ass ass concl) then true else false)
+	| Int (Ant (Agree (ass, concl)), childpt) -> if concl=F then valid_ndprooftree
+	
