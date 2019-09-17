@@ -52,13 +52,15 @@ type consequent = Con of judgement;;
 
 type ndprooftree = End of judgement
 	| IntroImp of  consequent * antecedents * ndprooftree
-	| ElimImp of consequent * (antecedents list) * ndprooftree
+	| ElimImp of consequent * (antecedents list) * (ndprooftree list)
 	| Int of consequent * antecedents * ndprooftree
 	| Class of  consequent * antecedents * ndprooftree
-	| IntroAnd of  consequent * (antecedents list) * ndprooftree
-	| ElimAnd of (consequent * antecedents * ndprooftree) list
-	| IntroOr of (consequent * antecedents * ndprooftree) list
-	| ElimOr of  consequent * (antecedents list) * ndprooftree
+	| IntroAnd of  consequent * (antecedents list) * (ndprooftree list)
+	| ElimAndL of consequent * antecedents * ndprooftree
+	| ElimAndR of consequent * antecedents * ndprooftree
+	| IntroOrL of consequent * antecedents * ndprooftree
+	| IntroOrR of consequent * antecedents * ndprooftree
+	| ElimOr of  consequent * (antecedents list) * (ndprooftree list)
 	| Start of (prop set) * ndprooftree;;
 
 let rec check_if_concl_in_ass ass concl = match ass with
@@ -79,20 +81,30 @@ let rec _valid_ndprooftree_ pt g = match pt with
 			(equal ass2 g) &&
 				(match ass2 with Set(r::rest) -> (if (concl1=Impl(r, concl2) && (equal (Set(rest)) ass1)) 
 													then (_valid_ndprooftree_ cpt ass2) else false))
-	| ElimImp (Con (Agree (ass1, q1)), ([Ant (Agree (ass2, Impl(p, q))); Ant (Agree (ass3, p1))]), cpt) ->
+	| ElimImp (Con (Agree (ass1, q1)), ([Ant (Agree (ass2, Impl(p, q))); Ant (Agree (ass3, p1))]), [cpt1; cpt2]) ->
 		(equal ass1 ass2) && (equal ass2 ass3) && 
-			(if (p=p1 && q=q1) then (_valid_ndprooftree_ cpt ass3) else false)
-	| IntroAnd (([Ant (Agree (ass1, p)); Ant (Agree (ass2, q))]), Con (Agree (ass3, And(p1, q1))), cpt) ->
-		(equal ass1 ass2) && (equal ass2 ass3) && (p1=p && q1=q) && (_valid_ndprooftree_ cpt ass3)
-	| ElimAnd ([(Ant (Agree (ass1, And(p, q))), Con ( Agree(ass2, p1)), cpt1) ; (Ant (Agree (ass3, And(p2, q2))), Con (Agree (ass4, q3)), cpt2)]) ->
-		(equal ass1 ass2) && (equal ass3 ass4) && (equal ass3 ass2) && (p=p1 && q2=q3 && p=p2 && q=q2)
-		&& (_valid_ndprooftree_ cpt1 ass2) && (_valid_ndprooftree_ cpt2 ass2)
-	| ElimOr (([Ant (Agree (ass1, And(p, q))); Ant (Agree (Set (p1::ass2), r1)); Ant (Agree (Set(q1::ass3), r2))]), Con (Agree (ass4, r3)), cpt) ->
-		(equal ass1 (Set (ass2))) && (equal (Set(ass2)) (Set(ass3))) & (equal (Set(ass3)) ass4)
-			& (p=p1 && q=q1 && r1=r2 && r2=r3) & (_valid_ndprooftree_ cpt ass1)
-	| IntroOr ([(Ant (Agree (ass1, p)), Con ( Agree(ass2, Or(p1, q1))), cpt1) ; (Ant (Agree (ass3, q)), Con (Agree (ass4, Or(p2, q2))), cpt2)]) ->
-		(equal ass1 ass2) && (equal ass3 ass4) && (equal ass3 ass2) && (p1=p2 && q1=q2)
-		&& (((p=p1) && _valid_ndprooftree_ cpt1 ass2) || ((q=q2) && _valid_ndprooftree_ cpt2 ass2));;
+			(if (p=p1 && q=q1) then (_valid_ndprooftree_ cpt1 ass3) && (_valid_ndprooftree_ cpt2 ass3) else false)
+
+	| IntroAnd (Con (Agree (ass3, And(p1, q1))), ([Ant (Agree (ass1, p)); Ant (Agree (ass2, q))]), [cpt1; cpt2]) ->
+		(equal ass1 ass2) && (equal ass2 ass3) && (p1=p && q1=q)
+		&& (_valid_ndprooftree_ cpt1 ass3) && (_valid_ndprooftree_ cpt2 ass3)
+
+	| ElimAndL (Con(Agree(ass1, p)), Ant(Agree(ass2, And(p1, q1))), cpt) ->
+		(equal ass1 ass2) && (p=p1) && (_valid_ndprooftree_ cpt ass2)
+
+	| ElimAndR (Con(Agree(ass1, p)), Ant(Agree(ass2, And(q1, p1))), cpt) ->
+		(equal ass1 ass2) && (p=p1) && (_valid_ndprooftree_ cpt ass2)
+
+	| ElimOr (Con (Agree (ass1, r)), ([Ant (Agree (ass2, And(p, q))); Ant (Agree (Set (p1::ass3), r1)); Ant (Agree (Set(q1::ass4), r2))]), [cpt1; cpt2; cpt3]) ->
+		(equal ass1 ass2) && (equal (Set(ass3)) (Set(ass4))) && (equal (Set(ass3)) ass1)
+			&& (p=p1 && q=q1 && r1=r2 && r=r1)
+			&& (_valid_ndprooftree_ cpt1 ass2) && (_valid_ndprooftree_ cpt2 (Set (p1::ass3))) && (_valid_ndprooftree_ cpt3 (Set (q1::ass4)))
+
+	| IntroOrL (Con(Agree(ass1, Or(p1, q1))), Ant(Agree(ass2, p2)), cpt1) ->
+		(equal ass1 ass2) &&(p1=p2) && (_valid_ndprooftree_ cpt1 ass1)
+
+	| IntroOrR (Con(Agree(ass1, Or(p1, q1))), Ant(Agree(ass2, q2)), cpt1) ->
+		(equal ass1 ass2) &&(q1=q2) && (_valid_ndprooftree_ cpt1 ass1);;
 
 
 
