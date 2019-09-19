@@ -108,52 +108,81 @@ let rec _valid_ndprooftree_ pt g = match pt with
 
 
 
-(* 
+
 let rec append_delta pt del = match pt with
 	| Start (init_g, cpt) -> Start(union init_g del,  (append_delta cpt del))
 	| End(Agree(ass, concl)) -> End(Agree(union ass del, concl))
-	| Int (Ant(Agree(ass, concl)), Con(Agree(ass1, concl1)), cpt) -> 
-			Int(Ant(Agree(union ass del, concl)), Con(Agree(union ass1 del, concl1)), (append_delta cpt del))
-	| Class (Ant(Agree(ass, concl)), Con(Agree(ass1, concl1)), cpt) -> 
-			Class(Ant(Agree(union ass del, concl)), Con(Agree(union ass1 del, concl1)), (append_delta cpt del))
-	| IntroImp (Ant (Agree (ass1, concl1)), Con (Agree (ass2, concl2)), cpt) ->
-			IntroImp (Ant (Agree (union ass1 del, concl1)), Con (Agree (union ass2 del, concl2)), (append_delta cpt del))
-	| ElimImp (([Ant (Agree (ass1, p1)); Ant (Agree (ass2, p2))]), Con (Agree (ass3, q1)), cpt) ->
-			ElimImp (([Ant (Agree (union ass1 del, p1)); Ant (Agree (union ass2 del, p2))]), Con (Agree (union ass3 del, q1)), (append_delta cpt del))
-	| IntroAnd (([Ant (Agree (ass1, p)); Ant (Agree (ass2, q))]), Con (Agree (ass3, r)), cpt) ->
-			IntroAnd (([Ant (Agree (union ass1 del, p)); Ant (Agree (union ass2 del, q))]), Con (Agree (union ass3 del, r)), (append_delta cpt del))
-	| ElimAnd ([(Ant (Agree (ass1, p)), Con ( Agree(ass2, p1)), cpt1) ; (Ant (Agree (ass3, q)), Con (Agree (ass4, q3)), cpt2)]) ->
-			ElimAnd ([(Ant (Agree (union ass1 del, p)), Con ( Agree(union ass2 del, p1)), cpt1) ; (Ant (Agree (union ass3 del, q)), Con (Agree (union ass4 del, q3)), (append_delta cpt2 del))])
-	| ElimOr (([Ant (Agree (ass1, p)); Ant (Agree (ass2, r1)); Ant (Agree (ass3, r2))]), Con (Agree (ass4, r3)), cpt) ->
-			ElimOr (([Ant (Agree (union ass1 del, p)); Ant (Agree (union ass2 del, r1)); Ant (Agree (union ass3 del, r2))]), Con (Agree (union ass4 del, r3)), (append_delta cpt del))
-	| IntroOr ([(Ant (Agree (ass1, p)), Con ( Agree(ass2, p1)), cpt1) ; (Ant (Agree (ass3, q)), Con (Agree (ass4, q2)), cpt2)]) ->
-			IntroOr ([(Ant (Agree (union ass1 del, p)), Con ( Agree(union ass2 del, p1)), cpt1) ; (Ant (Agree (union ass3 del, q)), Con (Agree (union ass4 del, q2)), (append_delta cpt2 del))]);;
+	| Int (Con (Agree (ass1, concl1)), Ant (Agree (ass2, concl2)), cpt) -> 
+		Int (Con (Agree (union ass1 del, concl1)), Ant (Agree (union ass2 del, concl2)), append_delta cpt del)
+	| Class (Con (Agree (ass1, concl1)), Ant (Agree (ass2, concl2)), cpt) ->
+		Class (Con (Agree (union ass1 del, concl1)), Ant (Agree (union ass2 del, concl2)), append_delta cpt del)
+	| IntroImp (Con (Agree (ass1, concl1)), Ant (Agree (ass2, concl2)), cpt) ->
+		IntroImp (Con (Agree (union ass1 del, concl1)), Ant (Agree (union ass2 del, concl2)), append_delta cpt del)
+	| ElimImp (Con (Agree (ass1, q1)), ([Ant (Agree (ass2, Impl(p, q))); Ant (Agree (ass3, p1))]), [cpt1; cpt2]) ->
+		ElimImp (Con (Agree (union ass1 del, q1)), ([Ant (Agree (union ass2 del, Impl(p, q))); Ant (Agree (union ass3 del, p1))]), [append_delta cpt1 del; append_delta cpt2 del])
+	| IntroAnd (Con (Agree (ass3, And(p1, q1))), ([Ant (Agree (ass1, p)); Ant (Agree (ass2, q))]), [cpt1; cpt2]) ->
+		IntroAnd (Con (Agree (union ass3 del, And(p1, q1))), ([Ant (Agree (union ass1 del, p)); Ant (Agree (union ass2 del, q))]), [append_delta cpt1 del; append_delta cpt2 del])
+	| ElimAndL (Con(Agree(ass1, p)), Ant(Agree(ass2, And(p1, q1))), cpt) ->
+		ElimAndL (Con(Agree(union ass1 del, p)), Ant(Agree(union ass2 del, And(p1, q1))), append_delta cpt del)
+	| ElimAndR (Con(Agree(ass1, p)), Ant(Agree(ass2, And(q1, p1))), cpt) ->
+		ElimAndR (Con(Agree(union ass1 del, p)), Ant(Agree(union ass2 del, And(q1, p1))), append_delta cpt del)
+	| ElimOr (Con (Agree (ass1, r)), ([Ant (Agree (ass2, And(p, q))); Ant (Agree (ass3, r1)); Ant (Agree (ass4, r2))]), [cpt1; cpt2; cpt3]) ->
+		ElimOr (Con (Agree (union ass1 del, r)), ([Ant (Agree (union ass2 del, And(p, q))); Ant (Agree (union ass3 del, r1)); Ant (Agree (union ass4 del, r2))]), [append_delta cpt1 del; append_delta cpt2 del; append_delta cpt3 del])
+	| IntroOrL (Con(Agree(ass1, Or(p1, q1))), Ant(Agree(ass2, p2)), cpt1) ->
+		IntroOrL (Con(Agree(union ass1 del, Or(p1, q1))), Ant(Agree(union ass2 del, p2)), append_delta cpt1 del)
+	| IntroOrR (Con(Agree(ass1, Or(p1, q1))), Ant(Agree(ass2, q2)), cpt1) ->
+		IntroOrR (Con(Agree(union ass1 del, Or(p1, q1))), Ant(Agree(union ass2 del, q2)), append_delta cpt1 del);;
 
- *)(* 
+
+ 
 let rec get_delta pt = match pt with
 	| Start (g, cpt) -> (get_delta cpt)
-	| End(Agree(ass, concl)) -> [concl]
-	| Int (Ant(Agree(ass, concl)), Con(Agree(ass1, concl1)), cpt) -> 
-			get_delta cpt
-	| Class (Ant(Agree(ass, concl)), Con(Agree(ass1, concl1)), cpt) -> 
-			get_delta cpt
-	| IntroImp (Ant (Agree (ass1, concl1)), Con (Agree (ass2, concl2)), cpt) ->
-			get_delta cpt
-	| ElimImp (([Ant (Agree (ass1, p1)); Ant (Agree (ass2, p2))]), Con (Agree (ass3, q1)), cpt) ->
-			get_delta cpt
-	| IntroAnd (([Ant (Agree (ass1, p)); Ant (Agree (ass2, q))]), Con (Agree (ass3, r)), cpt) ->
-			IntroAnd (([Ant (Agree (union ass1 del, p)); Ant (Agree (union ass2 del, q))]), Con (Agree (union ass3 del, r)), (append_delta cpt del))
-	| ElimAnd ([(Ant (Agree (ass1, p)), Con ( Agree(ass2, p1)), cpt1) ; (Ant (Agree (ass3, q)), Con (Agree (ass4, q3)), cpt2)]) ->
-			ElimAnd ([(Ant (Agree (union ass1 del, p)), Con ( Agree(union ass2 del, p1)), cpt1) ; (Ant (Agree (union ass3 del, q)), Con (Agree (union ass4 del, q3)), (append_delta cpt2 del))])
-	| ElimOr (([Ant (Agree (ass1, p)); Ant (Agree (ass2, r1)); Ant (Agree (ass3, r2))]), Con (Agree (ass4, r3)), cpt) ->
-			ElimOr (([Ant (Agree (union ass1 del, p)); Ant (Agree (union ass2 del, r1)); Ant (Agree (union ass3 del, r2))]), Con (Agree (union ass4 del, r3)), (append_delta cpt del))
-	| IntroOr ([(Ant (Agree (ass1, p)), Con ( Agree(ass2, p1)), cpt1) ; (Ant (Agree (ass3, q)), Con (Agree (ass4, q2)), cpt2)]) ->
-			IntroOr ([(Ant (Agree (union ass1 del, p)), Con ( Agree(union ass2 del, p1)), cpt1) ; (Ant (Agree (union ass3 del, q)), Con (Agree (union ass4 del, q2)), (append_delta cpt2 del))]);;
-	
-		 *)
+	| End(Agree(ass, concl)) -> Set([concl])
+	| Int (Con (Agree (ass1, concl1)), Ant (Agree (ass2, concl2)), cpt) -> (get_delta cpt)
+	| Class (Con (Agree (ass1, concl1)), Ant (Agree (ass2, concl2)), cpt) -> (get_delta cpt)
+	| IntroImp (Con (Agree (ass1, concl1)), Ant (Agree (ass2, concl2)), cpt) -> (get_delta cpt)
+	| ElimImp (Con (Agree (ass1, q1)), ([Ant (Agree (ass2, Impl(p, q))); Ant (Agree (ass3, p1))]), [cpt1; cpt2]) ->
+		union (get_delta cpt1) (get_delta cpt2)
+	| IntroAnd (Con (Agree (ass3, And(p1, q1))), ([Ant (Agree (ass1, p)); Ant (Agree (ass2, q))]), [cpt1; cpt2]) ->
+		union (get_delta cpt1) (get_delta cpt2)
+	| ElimAndL (Con(Agree(ass1, p)), Ant(Agree(ass2, And(p1, q1))), cpt) -> (get_delta cpt)
+	| ElimAndR (Con(Agree(ass1, p)), Ant(Agree(ass2, And(q1, p1))), cpt) -> (get_delta cpt)
+	| ElimOr (Con (Agree (ass1, r)), ([Ant (Agree (ass2, And(p, q))); Ant (Agree (ass3, r1)); Ant (Agree (ass4, r2))]), [cpt1; cpt2; cpt3]) ->
+		union (get_delta cpt1) (union (get_delta cpt2) (get_delta cpt3))
+	| IntroOrL (Con(Agree(ass1, Or(p1, q1))), Ant(Agree(ass2, p2)), cpt1) -> (get_delta cpt1)
+	| IntroOrR (Con(Agree(ass1, Or(p1, q1))), Ant(Agree(ass2, q2)), cpt1) -> (get_delta cpt1);;
+		
+
+let rec replace_2_delta pt del = match pt with 
+	| Start (g, cpt) -> let x = (intersection g del) in Start(x, replace_2_delta cpt x) 
+	| End(Agree(ass, concl)) -> End(Agree(del, concl))
+	| Int (Con (Agree (ass1, concl1)), Ant (Agree (ass2, concl2)), cpt) ->
+		Int (Con (Agree (del, concl1)), Ant (Agree (del, concl2)), replace_2_delta cpt del) 
+	| Class (Con (Agree (ass1, concl1)), Ant (Agree (Set(p::ass2), concl2)), cpt) ->
+		let x = (union (Set(p::[])) del) in
+		Class (Con (Agree (del, concl1)), Ant (Agree (x, concl2)), replace_2_delta cpt x)
+	| IntroImp (Con (Agree (ass1, concl1)), Ant (Agree (Set(p::ass2), concl2)), cpt) ->
+		let x = (union (Set(p::[])) del) in 
+			IntroImp (Con (Agree (del, concl1)), Ant (Agree (x, concl2)), replace_2_delta cpt x)
+	| ElimImp (Con (Agree (ass1, q1)), ([Ant (Agree (ass2, Impl(p, q))); Ant (Agree (ass3, p1))]), [cpt1; cpt2]) ->
+		ElimImp (Con (Agree (del, q1)), ([Ant (Agree (del, Impl(p, q))); Ant (Agree (del, p1))]), [replace_2_delta cpt1 del; replace_2_delta cpt2 del])
+	| IntroAnd (Con (Agree (ass3, And(p1, q1))), ([Ant (Agree (ass1, p)); Ant (Agree (ass2, q))]), [cpt1; cpt2]) ->
+		IntroAnd (Con (Agree (del, And(p1, q1))), ([Ant (Agree (del, p)); Ant (Agree (del, q))]), [replace_2_delta cpt1 del; replace_2_delta cpt2 del])
+	| ElimAndL (Con(Agree(ass1, p)), Ant(Agree(ass2, And(p1, q1))), cpt) ->
+		ElimAndL (Con(Agree(del, p)), Ant(Agree(del, And(p1, q1))), replace_2_delta cpt del)
+	| ElimAndR (Con(Agree(ass1, p)), Ant(Agree(ass2, And(q1, p1))), cpt) ->
+		ElimAndR (Con(Agree(del, p)), Ant(Agree(del, And(q1, p1))), replace_2_delta cpt del)
+	| ElimOr (Con (Agree (ass1, r)), ([Ant (Agree (ass2, And(p, q))); Ant (Agree (Set(xx::ass3), r1)); Ant (Agree (Set(yy::ass4), r2))]), [cpt1; cpt2; cpt3]) ->
+		let x = (union del (Set(xx::[]))) in let y = (union del (Set(yy::[]))) in 
+			ElimOr (Con (Agree (del, r)), ([Ant (Agree (del, And(p, q))); Ant (Agree (x, r1)); Ant (Agree (y, r2))]), [replace_2_delta cpt1 del; replace_2_delta cpt2 x; replace_2_delta cpt3 y])
+	| IntroOrL (Con(Agree(ass1, Or(p1, q1))), Ant(Agree(ass2, p2)), cpt1) ->
+		IntroOrL (Con(Agree(del, Or(p1, q1))), Ant(Agree(del, p2)), replace_2_delta cpt1 del)
+	| IntroOrR (Con(Agree(ass1, Or(p1, q1))), Ant(Agree(ass2, q2)), cpt1) ->
+		IntroOrR (Con(Agree(del, Or(p1, q1))), Ant(Agree(del, q2)), replace_2_delta cpt1 del);;
+
+
 (* required function definitions *)
 let valid_ndprooftree pt = (_valid_ndprooftree_ pt (Set([])));;
+let pad pt delta = append_delta pt delta;;
+let prune pt = replace_2_delta pt (get_delta pt);;
 
-(* let pad pt delta = append_delta pt delta;; *)
-
-(* let prune pt = pruning pt [];;*)
