@@ -270,20 +270,20 @@ valid_ndprooftree c;;
 let rec ____find_rpair_pt____ pt = match pt with
 	| Start (init_g, cpt) -> ____find_rpair_pt____ cpt
 	| End(Agree(ass, concl)) -> []
-	| Int (Con (Agree (ass1, concl1)), Ant (Agree (ass2, concl2)), cpt) -> ____find_rpair_pt____ cpt
-	| Class (Con (Agree (ass1, concl1)), Ant (Agree (ass2, concl2)), cpt) -> ____find_rpair_pt____ cpt
+	| Int (x, y, cpt) -> ____find_rpair_pt____ cpt
+	| Class (x, y, cpt) -> ____find_rpair_pt____ cpt
 	| ElimImp (Con (Agree (ass1, q1)), ([Ant (Agree (ass2, Impl(p, q))); Ant (Agree (ass3, p1))]), [cpt1; cpt2]) ->
 		(match cpt1 with 
-			IntroImp(Con (Agree (xass1, Impl(xp, xq))), Ant (Agree (xass2, xconcl2)), xcpt) ->
+			IntroImp(incon, inant, xcpt) ->
 				[(ElimImp (Con (Agree (ass1, q1)), ([Ant (Agree (ass2, Impl(p, q))); Ant (Agree (ass3, p1))]), [cpt1; cpt2]))]
 			| _ -> (let x1 = (____find_rpair_pt____ cpt1) in 
 				(if List.length x1=0 then (____find_rpair_pt____ cpt2) else x1))
 		)
 	| ElimOr (Con (Agree (ass1, r)), ([Ant (Agree (ass2, Or(p, q))); Ant (Agree (ass3, r1)); Ant (Agree (ass4, r2))]), [cpt1; cpt2; cpt3]) ->
 		(match cpt1 with
-			IntroOrL (Con(Agree(xass1, Or(xp1, xq1))), Ant(Agree(xass2, xp2)), xcpt1) ->
+			IntroOrL (incon, inant, xcpt1) ->
 				[ElimOr (Con (Agree (ass1, r)), ([Ant (Agree (ass2, Or(p, q))); Ant (Agree (ass3, r1)); Ant (Agree (ass4, r2))]), [cpt1; cpt2; cpt3])]
-			| IntroOrR (Con(Agree(xass1, Or(xp1, xq1))), Ant(Agree(xass2, xq2)), xcpt1) ->
+			| IntroOrR (incon, inant, xcpt1) ->
 				[ElimOr (Con (Agree (ass1, r)), ([Ant (Agree (ass2, Or(p, q))); Ant (Agree (ass3, r1)); Ant (Agree (ass4, r2))]), [cpt1; cpt2; cpt3])]
 			| _ -> (let x1 = (____find_rpair_pt____ cpt1) in
 				(if List.length x1=0 then 
@@ -295,13 +295,13 @@ let rec ____find_rpair_pt____ pt = match pt with
 		)
 	| ElimAndL (Con(Agree(ass1, p)), Ant(Agree(ass2, And(p1, q1))), cpt) ->
 		(match cpt with
-			IntroAnd (Con (Agree (xass3, And(xp1, xq1))), ([Ant (Agree (xass1, xp)); Ant (Agree (xass2, xq))]), [xcpt1; xcpt2]) ->
+			IntroAnd (incon, inant_list, [xcpt1; xcpt2]) ->
 				[ElimAndL (Con(Agree(ass1, p)), Ant(Agree(ass2, And(p1, q1))), cpt)]
 			| _ -> (____find_rpair_pt____ cpt)
 		)
 	| ElimAndR (Con(Agree(ass1, p)), Ant(Agree(ass2, And(q1, p1))), cpt) ->
 		(match cpt with
-			IntroAnd (Con (Agree (xass3, And(xp1, xq1))), ([Ant (Agree (xass1, xp)); Ant (Agree (xass2, xq))]), [xcpt1; xcpt2]) ->
+			IntroAnd (incon, inant_list, [xcpt1; xcpt2]) ->
 				[ElimAndR (Con(Agree(ass1, p)), Ant(Agree(ass2, And(q1, p1))), cpt)]
 			| _ -> (____find_rpair_pt____ cpt)
 		)
@@ -408,4 +408,4 @@ let find_rpair pt = (let x = (____find_rpair_pt____ pt) in (
 
 let simplify1 pt = ____simplify____ pt;;
 
-let normalise pt = (____normit____ pt);;
+let normalise pt = (____normit____ pt);;	
