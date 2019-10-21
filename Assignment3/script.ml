@@ -1,6 +1,11 @@
-(* Assignment3: Natural Deduction Proof Style System *)
+(* Assignment3: Natural Deduction Proof Style System  *)
 
 (* Let's write set: Data type *)
+
+
+(* corretions *)
+(* 135-line: Wrong: Or in place of And *)
+
 
 type 'a set = Set of ('a list);;
 
@@ -22,9 +27,14 @@ let rec intersection s1 s2 = match s1 with
 	Set [] -> Set []
 	| Set (m::rest) -> if member m s2 then insert m (intersection (Set rest) s2) else (intersection (Set rest) s2);;
 
-let rec difference s1 s2 = match s1 with
-	Set [] -> Set []
-	| Set (m::rest) -> if member m s2 then (difference (Set rest) s2) else insert m (difference (Set rest) s2);;
+
+(* s1 - s2 *)
+let rec diff s1 s2 = match s1 with
+	Set (r::rest) -> (match s2 with Set(x) -> if List.mem r x then diff (Set rest) s2 else r::(diff (Set rest) s2))
+	| Set ([]) -> [];;
+
+let difference s1 s2 = match s1 with 
+	| s1 -> (let x = (diff s1 s2) in Set(x));;
 
 (* s1.length() <= s2.length() *)
 let rec subset s1 s2 = match s1 with
@@ -180,9 +190,75 @@ let rec replace_2_delta pt del = match pt with
 	| IntroOrR (Con(Agree(ass1, Or(p1, q1))), Ant(Agree(ass2, q2)), cpt1) ->
 		IntroOrR (Con(Agree(del, Or(p1, q1))), Ant(Agree(del, q2)), replace_2_delta cpt1 del);;
 
+exception NothingInHere;;
+let get_del pt = match pt with
+	| Start(g, cpt) -> g
+	| _ -> raise NothingInHere;;
+
+let get_gamma ptlist = match ptlist with
+	| (Start(g, cpt)::rest) -> g
+	| [] -> raise NothingInHere;;
+
+
+let rec give_me_root pt = match pt with
+	| Start (g, cpt) -> give_me_root pt
+	| Int (Con (Agree (ass1, concl1)), p, cpt) -> concl1
+	| Class (Con (Agree (ass1, concl1)), p, cpt) -> concl1
+	| IntroImp (Con (Agree (ass1, concl1)), p, cpt) -> concl1
+	| ElimImp (Con (Agree (ass1, q1)), ([p; q]), [cpt1; cpt2]) -> q1
+	| IntroAnd (Con (Agree (ass1, p1)), ([p; q]), [cpt1; cpt2]) -> p1
+	| ElimAndL (Con(Agree(ass1, p)), q, cpt) -> p
+	| ElimAndR (Con(Agree(ass1, p)), q, cpt) -> p
+	| ElimOr (Con (Agree (ass1, r)), ([q1; q2; q3]), [cpt1; cpt2; cpt3]) -> r
+	| IntroOrL (Con(Agree(ass1, p)), q, cpt1) -> p
+	| IntroOrR (Con(Agree(ass1, q)), p, cpt1) -> q;;
+
+
+exception Cantbetrue;;
+let rec give_me_gamma_tree concl ptlist = match ptlist with
+	r::rest -> if (give_me_root r)=concl then r else (give_me_gamma_tree concl rest) 
+	| [] -> raise Cantbetrue;;
+	
+let rec grafting pt ptlist del gam = match pt with
+	| Start (g, cpt) -> let x = (union gam (difference g del)) in Start(x, grafting cpt ptlist del gam) 
+	| End(Agree(ass, concl)) -> let prooft = give_me_gamma_tree concl ptlist in (
+									match prooft with 
+									Start(g1, cpt1) -> cpt1
+								)
+	| Int (Con (Agree (ass1, concl1)), Ant (Agree (ass2, concl2)), cpt) ->
+		Int (Con (Agree (union gam (difference ass1 del), concl1)), Ant (Agree (union gam (difference ass2 del), concl2)), grafting cpt ptlist del gam) 
+	| Class (Con (Agree (ass1, concl1)), Ant (Agree (ass2, concl2)), cpt) ->
+		Class (Con (Agree (union gam (difference ass1 del), concl1)), Ant (Agree (union gam (difference ass2 del), concl2)), grafting cpt ptlist del gam)
+	| IntroImp (Con (Agree (ass1, concl1)), Ant (Agree (ass2, concl2)), cpt) -> 
+		IntroImp (Con (Agree (union gam (difference ass1 del), concl1)), Ant (Agree (union gam (difference ass2 del), concl2)), grafting cpt ptlist del gam)		
+	| ElimImp (Con (Agree (ass1, q1)), ([Ant (Agree (ass2, q2)); Ant (Agree (ass3, p1))]), [cpt1; cpt2]) ->
+		ElimImp (Con (Agree (union gam (difference ass1 del), q1)), ([Ant (Agree (union gam (difference ass2 del), q2)); Ant (Agree (union gam (difference ass3 del), p1))]), [grafting cpt1 ptlist del gam; grafting cpt2 ptlist del gam])
+	| IntroAnd (Con (Agree (ass1, p1)), ([Ant (Agree (ass2, p)); Ant (Agree (ass3, q))]), [cpt1; cpt2]) ->
+		IntroAnd (Con (Agree (union gam (difference ass1 del), p1)), ([Ant (Agree (union gam (difference ass2 del), p)); Ant (Agree (union gam (difference ass3 del), q))]), [grafting cpt1 ptlist del gam; grafting cpt2 ptlist del gam])
+	| ElimAndL (Con(Agree(ass1, p)), Ant(Agree(ass2, q)), cpt) ->
+		ElimAndL (Con(Agree(union gam (difference ass1 del), p)), Ant(Agree(union gam (difference ass2 del), q)), grafting cpt ptlist del gam)
+	| ElimAndR (Con(Agree(ass1, p)), Ant(Agree(ass2, q)), cpt) ->
+		ElimAndR (Con(Agree(union gam (difference ass1 del), p)), Ant(Agree(union gam (difference ass2 del), q)), grafting cpt ptlist del gam)
+	| ElimOr (Con (Agree (ass1, r)), ([Ant (Agree (ass2, p)); Ant (Agree (ass3, r1)); Ant (Agree (ass4, r2))]), [cpt1; cpt2; cpt3]) ->
+		ElimOr (Con (Agree (union gam (difference ass1 del), r)), ([Ant (Agree (union gam (difference ass2 del), p)); Ant (Agree (union gam (difference ass3 del), r1)); Ant (Agree (union gam (difference ass4 del), r2))]), [grafting cpt1 ptlist del gam; grafting cpt2 ptlist del gam; grafting cpt3 ptlist del gam])
+	| IntroOrL (Con(Agree(ass1, p)), Ant(Agree(ass2, p2)), cpt1) ->
+		IntroOrL (Con(Agree(union gam (difference ass1 del), p)), Ant(Agree(union gam (difference ass2 del), p2)), grafting cpt1 ptlist del gam)
+	| IntroOrR (Con(Agree(ass1, q)), Ant(Agree(ass2, q2)), cpt1) ->
+		IntroOrR (Con(Agree(union gam (difference ass1 del), q)), Ant(Agree(union gam (difference ass2 del), q2)), grafting cpt1 ptlist del gam);;
+
+
 
 (* required function definitions *)
 let valid_ndprooftree pt = (_valid_ndprooftree_ pt (Set([])));;
 let pad pt delta = append_delta pt delta;;
 let prune pt = replace_2_delta pt (get_delta pt);;
+let graft pt ptlist = grafting pt ptlist (get_del pt) (get_gamma ptlist);;
 
+
+(* Test Case 1 - Hyp, ImpInt*)
+(* let a = IntroImp(Agree([], Impl(L("x"),L("x"))), End(Agree([L("x")], L("x"))));;
+valid_ndprooftree a;;
+let b = pad a ([L("y")]);;
+valid_ndprooftree b;;
+let c = prune b;;
+valid_ndprooftree c;;
