@@ -1,4 +1,4 @@
-###Assignment 5: Terms, substitution, unification, resolution
+### Assignment 5: Terms, substitution, unification, resolution
 
 Consider the representation of "pre-terms" using the following data type definition
 
