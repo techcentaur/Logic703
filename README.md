@@ -8,5 +8,7 @@ Assignments:
 	- 1. Analytic Tableaux
 	- 2. Hilbert Style Proof System
 	- 3. Natural Deduction Proof System
+	- 4. Normalisation in Natural deduction proofs
+	- 5. Terms, substitution, unification, resolution
 
 
