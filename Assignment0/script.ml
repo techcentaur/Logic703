@@ -102,8 +102,8 @@ let iff_function x y = match (x, y) with
 
 (* Define rho as string->bool mapping *)
 let rho s = match s with
-	"st" -> false
-	| z -> true;;
+	"d" -> false
+	| "c" -> true;;
 
 (* truth value function (string->bool)->bool *)
 let rec truth rho exp = match exp with
@@ -134,7 +134,7 @@ let rec nnf exp = match exp with
 	| And(a1, a2) -> And(nnf a1, nnf a2)
 	| Or(a1, a2) -> Or(nnf a1, nnf a2)
 	| Impl(a1, a2) -> Or (nnf (Not a1), nnf a2)
-	| Iff(a1, a2) -> And (nnf (Impl (a1, a2)), nnf(Impl (a1, a2)));;
+	| Iff(a1, a2) -> And (nnf (Impl (a1, a2)), nnf(Impl (a2, a1)));;
 
 
 (* CNF helper functions *)
@@ -179,6 +179,8 @@ NOTE:
 DNF and CNF can further simply using unit laws and idempotence *)
 
 (* test-cases *)
+
+(*
 let l1 = And(T,Or(F, L("st")));;
 height l1;;
 size l1;;
@@ -186,6 +188,7 @@ letters l1;;
 truth rho l1;;
 cnf l1;;
 dnf l1;;
+*)
 
 let rec newprop p1 p2 l s =
 	(
@@ -207,7 +210,7 @@ let rec newprop p1 p2 l s =
 
 let subprop_at p1 p2 = (let x = (newprop (p1) (p2) ([]) (Set([]))) in 
 					(if length x = 0 then raise NotSubProp else x));;
-
+(* 
 let p1 = And(T, F);;
 let p2 = And(T, T);;
 let p21 = And(F, T);;
@@ -228,3 +231,4 @@ let p14 = Not(Or(p5, p7));;
 let p15 = Iff(And(p5, p6), p6);;
 let p16 = Impl(Iff(p15, p9), p14);;
 let p17 = Not(And(Iff(p7, p2), Or(p16, p10)));;
+ *)
