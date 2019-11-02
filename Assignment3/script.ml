@@ -78,7 +78,7 @@ let rec check_if_concl_in_ass ass concl = match ass with
 	| Set ([]) -> false;; 
  
 let rec _valid_ndprooftree_ pt g = match pt with
-	| Start (init_g, pt) -> _valid_ndprooftree_ pt init_g 
+	| Start (init_g, pt1) -> _valid_ndprooftree_ pt1 init_g 
 	| End (Agree (ass, concl)) -> if(g=ass) then 
 									(if concl=T then true
 									else (if (check_if_concl_in_ass ass concl) then true else false))
@@ -88,7 +88,7 @@ let rec _valid_ndprooftree_ pt g = match pt with
 	| Class (Con (Agree (ass1, concl1)), Ant (Agree ((Set(Not(p)::ass2)), concl2)), cpt) ->
 			(equal ass1 g) && (concl2=F) && (equal ass1 (Set(ass2))) && (concl1=p) && (_valid_ndprooftree_ cpt (Set(Not(p)::ass2)))
 	| IntroImp (Con (Agree (ass1, concl1)), Ant (Agree (ass2, concl2)), cpt) ->
-			(equal ass2 g) &&
+			(equal ass1 g) &&
 				(match ass2 with Set(r::rest) -> (if (concl1=Impl(r, concl2) && (equal (Set(rest)) ass1)) 
 													then (_valid_ndprooftree_ cpt ass2) else false))
 	| ElimImp (Con (Agree (ass1, q1)), ([Ant (Agree (ass2, Impl(p, q))); Ant (Agree (ass3, p1))]), [cpt1; cpt2]) ->
@@ -105,7 +105,7 @@ let rec _valid_ndprooftree_ pt g = match pt with
 	| ElimAndR (Con(Agree(ass1, p)), Ant(Agree(ass2, And(q1, p1))), cpt) ->
 		(equal ass1 ass2) && (p=p1) && (_valid_ndprooftree_ cpt ass2)
 
-	| ElimOr (Con (Agree (ass1, r)), ([Ant (Agree (ass2, And(p, q))); Ant (Agree (Set (p1::ass3), r1)); Ant (Agree (Set(q1::ass4), r2))]), [cpt1; cpt2; cpt3]) ->
+	| ElimOr (Con (Agree (ass1, r)), ([Ant (Agree (ass2, Or(p, q))); Ant (Agree (Set (p1::ass3), r1)); Ant (Agree (Set(q1::ass4), r2))]), [cpt1; cpt2; cpt3]) ->
 		(equal ass1 ass2) && (equal (Set(ass3)) (Set(ass4))) && (equal (Set(ass3)) ass1)
 			&& (p=p1 && q=q1 && r1=r2 && r=r1)
 			&& (_valid_ndprooftree_ cpt1 ass2) && (_valid_ndprooftree_ cpt2 (Set (p1::ass3))) && (_valid_ndprooftree_ cpt3 (Set (q1::ass4)))
@@ -120,28 +120,28 @@ let rec _valid_ndprooftree_ pt g = match pt with
 
 
 let rec append_delta pt del = match pt with
-	| Start (init_g, cpt) -> Start(union init_g del,  (append_delta cpt del))
-	| End(Agree(ass, concl)) -> End(Agree(union ass del, concl))
+	| Start (init_g, cpt) -> Start(union del init_g,  (append_delta cpt del))
+	| End(Agree(ass, concl)) -> End(Agree(union del  ass, concl))
 	| Int (Con (Agree (ass1, concl1)), Ant (Agree (ass2, concl2)), cpt) -> 
-		Int (Con (Agree (union ass1 del, concl1)), Ant (Agree (union ass2 del, concl2)), append_delta cpt del)
+		Int (Con (Agree (union del ass1, concl1)), Ant (Agree (union del ass2, concl2)), append_delta cpt del)
 	| Class (Con (Agree (ass1, concl1)), Ant (Agree (ass2, concl2)), cpt) ->
-		Class (Con (Agree (union ass1 del, concl1)), Ant (Agree (union ass2 del, concl2)), append_delta cpt del)
+		Class (Con (Agree (union del ass1, concl1)), Ant (Agree (union del ass2, concl2)), append_delta cpt del)
 	| IntroImp (Con (Agree (ass1, concl1)), Ant (Agree (ass2, concl2)), cpt) ->
-		IntroImp (Con (Agree (union ass1 del, concl1)), Ant (Agree (union ass2 del, concl2)), append_delta cpt del)
+		IntroImp (Con (Agree (union del ass1, concl1)), Ant (Agree (union del ass2, concl2)), append_delta cpt del)
 	| ElimImp (Con (Agree (ass1, q1)), ([Ant (Agree (ass2, Impl(p, q))); Ant (Agree (ass3, p1))]), [cpt1; cpt2]) ->
-		ElimImp (Con (Agree (union ass1 del, q1)), ([Ant (Agree (union ass2 del, Impl(p, q))); Ant (Agree (union ass3 del, p1))]), [append_delta cpt1 del; append_delta cpt2 del])
+		ElimImp (Con (Agree (union del ass1, q1)), ([Ant (Agree (union del ass2, Impl(p, q))); Ant (Agree (union del ass3, p1))]), [append_delta cpt1 del; append_delta cpt2 del])
 	| IntroAnd (Con (Agree (ass3, And(p1, q1))), ([Ant (Agree (ass1, p)); Ant (Agree (ass2, q))]), [cpt1; cpt2]) ->
-		IntroAnd (Con (Agree (union ass3 del, And(p1, q1))), ([Ant (Agree (union ass1 del, p)); Ant (Agree (union ass2 del, q))]), [append_delta cpt1 del; append_delta cpt2 del])
+		IntroAnd (Con (Agree (union del ass3, And(p1, q1))), ([Ant (Agree (union del ass1, p)); Ant (Agree (union del ass2, q))]), [append_delta cpt1 del; append_delta cpt2 del])
 	| ElimAndL (Con(Agree(ass1, p)), Ant(Agree(ass2, And(p1, q1))), cpt) ->
-		ElimAndL (Con(Agree(union ass1 del, p)), Ant(Agree(union ass2 del, And(p1, q1))), append_delta cpt del)
+		ElimAndL (Con(Agree(union del ass1, p)), Ant(Agree(union del ass2, And(p1, q1))), append_delta cpt del)
 	| ElimAndR (Con(Agree(ass1, p)), Ant(Agree(ass2, And(q1, p1))), cpt) ->
-		ElimAndR (Con(Agree(union ass1 del, p)), Ant(Agree(union ass2 del, And(q1, p1))), append_delta cpt del)
+		ElimAndR (Con(Agree(union del ass1, p)), Ant(Agree(union del ass2, And(q1, p1))), append_delta cpt del)
 	| ElimOr (Con (Agree (ass1, r)), ([Ant (Agree (ass2, And(p, q))); Ant (Agree (ass3, r1)); Ant (Agree (ass4, r2))]), [cpt1; cpt2; cpt3]) ->
-		ElimOr (Con (Agree (union ass1 del, r)), ([Ant (Agree (union ass2 del, And(p, q))); Ant (Agree (union ass3 del, r1)); Ant (Agree (union ass4 del, r2))]), [append_delta cpt1 del; append_delta cpt2 del; append_delta cpt3 del])
+		ElimOr (Con (Agree (union del ass1, r)), ([Ant (Agree (union del ass2, And(p, q))); Ant (Agree (union del ass3, r1)); Ant (Agree (union del ass4, r2))]), [append_delta cpt1 del; append_delta cpt2 del; append_delta cpt3 del])
 	| IntroOrL (Con(Agree(ass1, Or(p1, q1))), Ant(Agree(ass2, p2)), cpt1) ->
-		IntroOrL (Con(Agree(union ass1 del, Or(p1, q1))), Ant(Agree(union ass2 del, p2)), append_delta cpt1 del)
+		IntroOrL (Con(Agree(union del ass1, Or(p1, q1))), Ant(Agree(union del ass2, p2)), append_delta cpt1 del)
 	| IntroOrR (Con(Agree(ass1, Or(p1, q1))), Ant(Agree(ass2, q2)), cpt1) ->
-		IntroOrR (Con(Agree(union ass1 del, Or(p1, q1))), Ant(Agree(union ass2 del, q2)), append_delta cpt1 del);;
+		IntroOrR (Con(Agree(union del ass1, Or(p1, q1))), Ant(Agree(union del ass2, q2)), append_delta cpt1 del);;
 
 
  
@@ -254,11 +254,3 @@ let pad pt delta = append_delta pt delta;;
 let prune pt = replace_2_delta pt (get_delta pt);;
 let graft pt ptlist = grafting pt ptlist (get_del pt) (get_gamma ptlist);;
 
-
-(* Test Case 1 - Hyp, ImpInt*)
-(* let a = IntroImp(Agree([], Impl(L("x"),L("x"))), End(Agree([L("x")], L("x"))));;
-valid_ndprooftree a;;
-let b = pad a ([L("y")]);;
-valid_ndprooftree b;;
-let c = prune b;;
-valid_ndprooftree c;;
