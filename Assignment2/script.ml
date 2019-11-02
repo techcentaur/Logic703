@@ -115,7 +115,10 @@ let rec _ded_thm_ tree = match tree with
 
 
 let rec get_me_proof_tree hplist gamma props = match (gamma, hplist) with
-	(G (g::restg), hp::resthp) -> if props = g then hp else (get_me_proof_tree resthp (G(restg)) props)
+	(G (g::restg), hp::resthp) -> if props = g
+			then
+			(match hp with Root(J(gg, pp), hh) -> hh)
+			else (get_me_proof_tree resthp (G(restg)) props)
 	| _ -> raise SomethingWrong;;
 
 let rec replace_trees_inside tree hplist newgamma = match tree with
