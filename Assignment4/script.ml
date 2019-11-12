@@ -186,17 +186,40 @@ let rec replace_2_delta pt del = match pt with
 		IntroOrR (Con(Agree(del, Or(p1, q1))), Ant(Agree(del, q2)), replace_2_delta cpt1 del);;
 
 exception NothingInHere;;
-let get_del pt = match pt with
-	| Start(g, cpt) -> g
-	| _ -> raise NothingInHere;;
+let rec get_del pt = match pt with
+	| Start (g, cpt) -> get_del cpt
+	| Int (Con (Agree (ass1, concl1)), p, cpt) -> ass1
+	| Class (Con (Agree (ass1, concl1)), p, cpt) -> ass1
+	| IntroImp (Con (Agree (ass1, concl1)), p, cpt) -> ass1
+	| ElimImp (Con (Agree (ass1, q1)), ([p; q]), [cpt1; cpt2]) -> ass1
+	| IntroAnd (Con (Agree (ass1, p1)), ([p; q]), [cpt1; cpt2]) -> ass1
+	| ElimAndL (Con(Agree(ass1, p)), q, cpt) -> ass1
+	| ElimAndR (Con(Agree(ass1, p)), q, cpt) -> ass1
+	| ElimOr (Con (Agree (ass1, r)), ([q1; q2; q3]), [cpt1; cpt2; cpt3]) -> ass1
+	| IntroOrL (Con(Agree(ass1, p)), q, cpt1) -> ass1
+	| IntroOrR (Con(Agree(ass1, q)), p, cpt1) -> ass1;;
+
+
+let rec _get_gamma_ pt = match pt with
+	| Start (g, cpt) -> _get_gamma_ cpt
+	| Int (Con (Agree (ass1, concl1)), p, cpt) -> ass1
+	| Class (Con (Agree (ass1, concl1)), p, cpt) -> ass1
+	| IntroImp (Con (Agree (ass1, concl1)), p, cpt) -> ass1
+	| ElimImp (Con (Agree (ass1, q1)), ([p; q]), [cpt1; cpt2]) -> ass1
+	| IntroAnd (Con (Agree (ass1, p1)), ([p; q]), [cpt1; cpt2]) -> ass1
+	| ElimAndL (Con(Agree(ass1, p)), q, cpt) -> ass1
+	| ElimAndR (Con(Agree(ass1, p)), q, cpt) -> ass1
+	| ElimOr (Con (Agree (ass1, r)), ([q1; q2; q3]), [cpt1; cpt2; cpt3]) -> ass1
+	| IntroOrL (Con(Agree(ass1, p)), q, cpt1) -> ass1
+	| IntroOrR (Con(Agree(ass1, q)), p, cpt1) -> ass1;;
+
 
 let get_gamma ptlist = match ptlist with
-	| (Start(g, cpt)::rest) -> g
+	| (r::rest) -> _get_gamma_ r
 	| [] -> raise NothingInHere;;
 
-
 let rec give_me_root pt = match pt with
-	| Start (g, cpt) -> give_me_root pt
+	| Start (g, cpt) -> give_me_root cpt
 	| Int (Con (Agree (ass1, concl1)), p, cpt) -> concl1
 	| Class (Con (Agree (ass1, concl1)), p, cpt) -> concl1
 	| IntroImp (Con (Agree (ass1, concl1)), p, cpt) -> concl1
@@ -208,17 +231,18 @@ let rec give_me_root pt = match pt with
 	| IntroOrL (Con(Agree(ass1, p)), q, cpt1) -> p
 	| IntroOrR (Con(Agree(ass1, q)), p, cpt1) -> q;;
 
-
 exception Cantbetrue;;
+
 let rec give_me_gamma_tree concl ptlist = match ptlist with
-	r::rest -> if (give_me_root r)=concl then r else (give_me_gamma_tree concl rest) 
-	| [] -> raise Cantbetrue;;
+	r::rest -> if (give_me_root r)=concl then [r] else (give_me_gamma_tree concl rest) 
+	| [] -> [];;
 	
 let rec grafting pt ptlist del gam = match pt with
 	| Start (g, cpt) -> let x = (union gam (difference g del)) in Start(x, grafting cpt ptlist del gam) 
 	| End(Agree(ass, concl)) -> let prooft = give_me_gamma_tree concl ptlist in (
 									match prooft with 
-									Start(g1, cpt1) -> cpt1
+									[cpt1]-> cpt1 |
+									[] -> End(Agree(gam, concl))
 								)
 	| Int (Con (Agree (ass1, concl1)), Ant (Agree (ass2, concl2)), cpt) ->
 		Int (Con (Agree (union gam (difference ass1 del), concl1)), Ant (Agree (union gam (difference ass2 del), concl2)), grafting cpt ptlist del gam) 
@@ -401,12 +425,16 @@ let rec ____normit____ pt = match pt with
 
 
 exception Normalised;;
-let find_rpair pt = (let x = (____find_rpair_pt____ pt) in (
-			match x with a::rest -> a |
-			[] -> raise Normalised
+let ____find_rpair____ pt = (let x = (____find_rpair_pt____ pt) in (
+			match x with a::rest -> [a] |
+			[] -> []
 			));;
+let normie pt = (let x = (____find_rpair____ pt) in (if List.length x==0 then 0 else 1));;
+
+let find_rpair pt = (let x = (____find_rpair____ pt) in (match x with [a] -> a | [] -> raise Normalised));;
 
 let simplify1 pt = ____simplify____ pt;;
 
-let normalise pt = (____normit____ pt);;	
+
+let rec normalise pt = (let x = (normie pt) in (if x=1 then (normalise (____normit____ pt)) else pt));;	
 
