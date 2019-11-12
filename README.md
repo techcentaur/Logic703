@@ -18,3 +18,5 @@ This repository is in correspondence with the assignments of course COL703 (Logi
 	- 1. Everything correct, with examples.
 	- 2. Everything correct, with examples.
 	- 3. Everything correct, with examples.
+	- 4. There was one mistake in the `End` matching in grafting where I didn't change the gamma, but corrected it now | Complete with all examples.
+	- 5. One mistake: When normalizing, you have to normalize the tree until there is nothing to be normalized; I did it just once. But corrected in the updated code | Complete with all examples.
