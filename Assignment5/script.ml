@@ -279,6 +279,55 @@ let contains_empty p = (if length p = 0 then true else (if (_contains_empty p) t
 let rec resolution prop = (contains_empty (_resolution prop));;
 
 
+let rec secondliteral____ l1 c_2 c1 c2 = match c_2 with
+	Set(l2::rest) -> (match (l1, l2) with
+			(L (t1), Not (t2)) -> (let x = (try Some(mgu t1 t2) with NOT_UNIFIABLE -> None) in
+									(match x with
+										| Some(z) -> 1
+										| None -> (secondliteral____ l1 (Set rest) c1 c2)
+									)
+								) 
+			| (Not t1, L t2) ->  (let x = (try Some(mgu t1 t2) with NOT_UNIFIABLE -> None) in
+									(match x with
+										| Some(z)-> 1
+										| None -> secondliteral____ l1 (Set rest) c1 c2
+									)
+								)
+			| (Not t1, Not t2) -> secondliteral____ l1 (Set rest) c1 c2
+			| (L t1, L t2) -> secondliteral____ l1 (Set rest) c1 c2)
+	| Set [] -> 0
+
+let rec firstliteral____ c_1 c1 c2 = match c_1 with
+	Set(l1::rest) -> let x = (secondliteral____ l1 c2 c1 c2) in 
+				(if x = 1
+					then 1
+				else (firstliteral____ (Set rest) c1 c2)
+				)
+	| Set([]) -> 0;;
+
+
+let rec selectSecondClause____ c1 rest = match rest with
+	Set [] -> []
+	| Set(c2::rest2) -> (let x = (firstliteral____ c1 c1 c2) in 	
+							(if x = 0
+								then (selectSecondClause____ c1 (Set rest2)) 
+							else ([c1; c2])
+						));;
+
+let rec selectFirstClause____ prop = match prop with
+	Set ([]) -> []
+	| Set (c1::rest) -> (let x = (selectSecondClause____ c1 (Set rest)) in(
+								if List.length x = 0 then
+									(selectFirstClause____ (Set rest))
+								else x
+							)
+						);;
+
+exception NotFound;;
+let select_clauses setset = (let x = selectFirstClause____ setset in (if List.length x = 2 then x else raise NotFound));;
+
+let one_step_resolution c1 c2 l1 l2 mggg = resolvedClause c1 c2 l1 l2 mggg;;
+
 (* 5 - examples*)
 
 let p = V ("x");;	
@@ -289,15 +338,14 @@ let q1 = L (q);;
 let p2 = Not (p);;
 let q2 = Not (q);;
 
-let c1 = Set [p1; q1];;
+(* let c1 = Set [p1; q1];;
 let c2 = Set [p2; q1];;
 let c3 = Set [p1; q2];;
 let c4 = Set [p2; q2];;
 
 let cs = Set [c2; c3; c4];;
 let r0 = resolution cs;;
-
-(* Example 1 *)
+ *)
 
 let c1 = Set [p1];;
 let c2 = Set [q1];;
@@ -305,6 +353,26 @@ let c3 = Set [p2; q2];;
 let cs1 = Set [c1; c2; c3];;
 let r1 = resolution cs1;;
 
+let sc = select_clauses cs1;;
+
+let cc1 = Set [L (V "x")];;
+let cc2 = Set [Not (V "x"); Not (V "y")];;
+
+let ll1 = L (V "x");;
+let ll2 = Not (V "x");;
+
+one_step_resolution cc1 cc2 ll1 ll2 (mgu (V "x") (V "x"));;
+
+
+
+(* Example 1 *)
+(* 
+let c1 = Set [p1];;
+let c2 = Set [q1];;
+let c3 = Set [p2; q2];;
+let cs1 = Set [c1; c2; c3];;
+let r1 = resolution cs1;;
+ *)
 (* Example 2 *)
 
 (* let a = (V "a");;
@@ -350,7 +418,9 @@ let r3 = resolution cl3;;
  *)
 (* Example 4 *)
 
-(* let jon = Node("jon", []);;
+(* Name change for lily-fufu example *)
+
+let jon = Node("jon", []);;
 let ygritte = Node("ygritte", []);;
 
 let t1 = Node("catelyn", [jon; ygritte]);;
@@ -382,7 +452,12 @@ let c5 = Set [l8];;
 
 let cl4 = Set [c1; c2; c3; c4; c5];;
 let r4 = resolution cl4;;
- *)
+
+(* For mgu only example *)
+let t1 = (Node("F", [V "X"; Node("G", [V "Z"])]));;
+let t2 = (Node("F", [V "Y"; Node("G", [Node("H", [V "Y"])])]));;
+let c2 = mgu t1 t2;;
+
 
 (* 6 *)
 
