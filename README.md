@@ -1,6 +1,9 @@
 # Logic703
 This repository is in correspondence with the assignments of course COL703 (Logic for Computer Science) taught by Prof Sajeeva Prasad during fall of 2019.
 
+###
+Ah-oye! Fellow student. According to the principle: "Why do it yourself when someone have done it before?" Feel free to understand and reuse the code. For legal reasons I advise students to do it on their own.
+
 
 ### Assignments:
 
